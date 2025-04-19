@@ -1,0 +1,41 @@
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: 10px 0;
+  color: #666;
+}
+
+.loading-indicator i {
+  margin-right: 10px;
+  color: #4a90e2;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.activity-type {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.activity-description {
+  color: #666;
+  font-size: 14px;
+} 
