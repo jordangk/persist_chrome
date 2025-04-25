@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PersistIQ Lead Manager Chrome Extension</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --text-color: #1f2937;
+            --light-bg: #f3f4f6;
+            --white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .hero {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background-color: var(--white);
+            color: var(--primary-color);
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .features {
+            padding: 80px 0;
+            background-color: var(--light-bg);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .version-info {
+            text-align: center;
+            padding: 20px;
+            background-color: var(--white);
+            margin-top: 40px;
+            border-radius: 8px;
+        }
+
+        .version-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="hero">
+                <h1>PersistIQ Lead Manager</h1>
+                <p class="subtitle">Manage your PersistIQ leads and campaigns directly from your browser without leaving your current webpage.</p>
+                <a href="https://github.com/yourusername/persist_chrome/archive/refs/heads/main.zip" class="download-btn">Download Extension</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="features">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 20px;">Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>Authentication</h3>
+                    <p>Connect to PersistIQ using your API key and email address for secure access to your account.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>User Dashboard</h3>
+                    <p>View account information and switch between multiple PersistIQ users seamlessly.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Campaign Management</h3>
+                    <p>Browse and view all campaigns with key statistics at your fingertips.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Lead Search</h3>
+                    <p>Quickly lookup lead information by email address with detailed results.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Unified Lead Creation</h3>
+                    <p>Single-step interface for adding leads with all fields in one view, with real-time form field saving.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Enhanced Experience</h3>
+                    <p>Smooth transitions, state persistence, and dynamic loading indicators for better feedback.</p>
+                </div>
+            </div>
+            <div class="version-info">
+                <p>Current Version: 1.5.0</p>
+                <p>Last Updated: April 15, 2025</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html> 

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PersistIQ Chrome Extension</title>
+  <!-- Load local Flatpickr CSS -->
+  <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      width: 350px;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .container {
+      padding: 16px;
+    }
+    
+    h1 {
+      color: #4f46e5;
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+    
+    h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    
+    p {
+      color: #666;
+      margin-bottom: 16px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    button:hover {
+      background-color: #4338ca;
+    }
+    
+    .btn-secondary {
+      background-color: #f3f4f6;
+      color: #1f2937;
+      border: 1px solid #d1d5db;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #e5e7eb;
+    }
+    
+    .btn-danger {
+      background-color: #ef4444;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #dc2626;
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      color: #4f46e5;
+      border: 1px solid #4f46e5;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .btn-outline:hover {
+      background-color: rgba(79, 70, 229, 0.05);
+    }
+    
+    .btn-block {
+      display: block;
+      width: 100%;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .mt-4 {
+      margin-top: 16px;
+    }
+    
+    .error {
+      color: #ef4444;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .success {
+      color: #10b981;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .header {
+      background-color: #4f46e5;
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    /* Transition styles */
+    .tab-content {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    .tab-content.visible {
+      opacity: 1;
+    }
+    
+    #lead-success-message {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    /* View container transitions */
+    .view-container {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    .view-container.visible {
+      opacity: 1;
+    }
+    
+    .header h1 {
+      color: white;
+      margin: 0;
+      font-size: 18px;
+    }
+    
+    .tab-nav {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 16px;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab.active {
+      border-bottom-color: #4f46e5;
+      color: #4f46e5;
+      font-weight: 500;
+    }
+    
+    .campaign-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .campaign-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    
+    .campaign-title {
+      font-weight: 600;
+    }
+    
+    .campaign-date {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .campaign-stats {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .campaign-stat {
+      flex: 1;
+      background-color: #f9fafb;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    .incompatible-campaign {
+      color: #9ca3af;
+      font-style: italic;
+    }
+    
+    .campaign-compatibility-note {
+      margin-top: 4px;
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>PersistIQ</h1>
+  </div>
+  
+  <!-- Authentication View -->
+  <div id="auth-view" class="view-container">
+    <div class="container">
+      <h2>Connect to PersistIQ</h2>
+      <p>Enter your PersistIQ API key and email to connect</p>
+      
+      <div class="form-group">
+        <label for="user-email">Email Address</label>
+        <input type="email" id="user-email" placeholder="Enter your PersistIQ email">
+      </div>
+      
+      <div class="form-group">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="Enter your API key">
+      </div>
+      
+      <div id="auth-error" class="error" style="display: none;"></div>
+      <div id="auth-success" class="success" style="display: none;"></div>
+      
+      <button id="connect-btn" class="btn-block">Connect</button>
+      
+      <div class="text-center mt-4">
+        <a href="https://persistiq.com/app#/api_keys" target="_blank">Get API Key</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- User Selection View -->
+  <div id="user-view" class="view-container" style="display: none;">
+    <div class="container">
+      <h2>Select User</h2>
+      <p>Choose which PersistIQ user account to use</p>
+      
+      <div class="form-group">
+        <label for="user-select">User</label>
+        <select id="user-select">
+          <option value="" disabled selected>Select a user</option>
+          <!-- Will be populated dynamically -->
+        </select>
+      </div>
+      
+      <div class="form-group" id="mailbox-container" style="display: none;">
+        <label for="mailbox-select">Mailbox</label>
+        <select id="mailbox-select">
+          <option value="" disabled selected>Select a mailbox</option>
+          <!-- Will be populated dynamically -->
+        </select>
+      </div>
+      
+      <div id="user-error" class="error" style="display: none;"></div>
+      
+      <button id="user-continue" class="btn-block">Continue</button>
+      
+      <div class="text-center mt-4">
+        <button id="disconnect-btn" class="btn-danger btn-block">Disconnect Account</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Main View -->
+  <div id="main-view" class="view-container" style="display: none;">
+    <div class="container">
+      <div class="tab-nav">
+        <div class="tab active" data-tab="user-tab">User</div>
+        <div class="tab" data-tab="campaigns-tab">Campaigns</div>
+        <div class="tab" data-tab="lead-info-tab">Lead Info</div>
+        <div class="tab" data-tab="add-lead-tab">Add Lead</div>
+      </div>
+      
+      <!-- User Tab -->
+      <div id="user-tab" class="tab-content">
+        <div class="form-group">
+          <label>Current User</label>
+          <div id="current-user" style="padding: 8px; background-color: #f9fafb; border-radius: 4px;"></div>
+        </div>
+        
+        <div class="form-group">
+          <label>Current Mailbox</label>
+          <div id="current-mailbox" style="padding: 8px; background-color: #f9fafb; border-radius: 4px;"></div>
+        </div>
+        
+        <button id="change-user-btn" class="btn-secondary btn-block">Logout</button>
+      </div>
+      
+      <!-- Campaigns Tab -->
+      <div id="campaigns-tab" class="tab-content" style="display: none;">
+        <div class="form-group">
+          <input type="text" id="campaign-search" placeholder="Search campaigns...">
+        </div>
+        
+        <div id="campaigns-container">
+          <div style="text-align: center; padding: 20px;">
+            <p>Loading campaigns...</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Lead Info Tab -->
+      <div id="lead-info-tab" class="tab-content" style="display: none;">
+        <div class="form-group">
+          <label for="lead-email-search">Search Lead by Email</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="email" id="lead-email-search" placeholder="Enter lead email">
+            <button id="search-lead-email-btn" style="flex-shrink: 0;">Get Info</button>
+          </div>
+        </div>
+        <!-- Hidden lead ID field -->
+        <input type="hidden" id="lead-id-search">
+        
+        <div id="lead-info-error" class="error" style="display: none;"></div>
+        
+        <div id="lead-details" style="display: none;">
+          <!-- Basic lead info section -->
+          <div class="form-group">
+            <label>Lead Overview</label>
+            <div id="lead-basic-info" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+              <!-- Will be populated dynamically with basic lead info -->
+            </div>
+          </div>
+
+          <!-- Lead campaigns section -->
+          <div class="form-group">
+            <label>Campaigns</label>
+            <div id="lead-campaigns" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+              <!-- Will be populated dynamically -->
+            </div>
+          </div>
+          
+          <!-- Lead activity section -->
+          <div class="form-group">
+            <label>Activity</label>
+            <div id="lead-activity" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+              <!-- Will be populated dynamically -->
+            </div>
+          </div>
+          
+          <!-- Lead attributes section with edit capability -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label>Attributes</label>
+              <button id="edit-lead-btn" class="btn-secondary btn-sm">Edit</button>
+            </div>
+            <div id="lead-attributes" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+              <!-- Will be populated dynamically -->
+            </div>
+            
+            <!-- Edit form (initially hidden) -->
+            <div id="lead-edit-form" style="display: none; margin-top: 12px;">
+              <div id="lead-edit-fields">
+                <!-- Will be populated dynamically -->
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button id="save-lead-btn" class="btn-block">Save Changes</button>
+                <button id="cancel-edit-btn" class="btn-secondary btn-block">Cancel</button>
+              </div>
+              <div id="edit-lead-error" class="error" style="display: none; margin-top: 12px;"></div>
+              <div id="edit-lead-success" class="success" style="display: none; margin-top: 12px;"></div>
+            </div>
+          </div>
+          
+          <!-- Subscribe/Unsubscribe button -->
+          <div class="form-group" style="margin-top: 20px; text-align: center;">
+            <button id="toggle-subscribe-btn" class="btn-block" style="background-color: #10b981;">
+              Subscribe
+            </button>
+            <div id="subscribe-error" class="error" style="display: none; margin-top: 8px;"></div>
+            <div id="subscribe-success" class="success" style="display: none; margin-top: 8px;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Add Lead Tab -->
+      <div id="add-lead-tab" class="tab-content" style="display: none;">
+        <div id="unified-lead-form">
+          <h3>Add New Lead</h3>
+          
+          <!-- Email field (always visible and required) -->
+          <div class="form-group">
+            <label for="new-lead-email">Email Address*</label>
+            <input type="email" id="new-lead-email" placeholder="Email address" required>
+          </div>
+          
+          <!-- Lead ID field (hidden per requirements) -->
+          <div class="form-group" style="display: none;">
+            <label for="new-lead-id">Lead ID</label>
+            <input type="text" id="new-lead-id" name="lead_id" placeholder="Enter lead ID (optional)">
+          </div>
+          
+          <!-- Lead fields container (loaded when tab opens) -->
+          <div id="lead-fields-container">
+            <!-- Will be populated dynamically from the API -->
+            <div style="text-align: center; padding: 10px;">
+              <p>Loading additional fields...</p>
+            </div>
+          </div>
+          
+          <!-- Campaign selection (part of the unified form) -->
+          <div class="form-group">
+            <label for="add-to-campaign-select">Add to Campaign (Optional)</label>
+            <select id="add-to-campaign-select">
+              <option value="">No campaign</option>
+              <!-- Will be populated dynamically -->
+            </select>
+          </div>
+          
+          <!-- Schedule date selection (Moved here) -->
+          <div class="form-group">
+            <label for="schedule-date">Schedule Date (Optional)</label>
+            <input type="text" id="schedule-date" placeholder="Select date">
+          </div>
+          
+          <!-- Error and success messages -->
+          <div id="add-lead-error" class="error" style="display: none;"></div>
+          <div id="create-lead-error" class="error" style="display: none;"></div>
+          <div id="add-to-campaign-error" class="error" style="display: none;"></div>
+          <div id="create-lead-success" class="success" style="display: none;"></div>
+          
+          <!-- Action buttons -->
+          <button id="create-unified-lead" class="btn-block" style="margin-top: 15px;">Create Lead</button>
+          
+          <!-- Success confirmation (initially hidden) -->
+          <div id="lead-success-message" style="display: none; margin-top: 15px; text-align: center;">
+            <div style="background-color: #ecfdf5; color: #047857; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+              <p id="created-lead-info">Lead created successfully!</p>
+            </div>
+            <button id="add-another-lead" class="btn-outline" style="width: 100%;">Add Another Lead</button>
+          </div>
+        </div>
+        
+        <!-- Legacy steps (hidden but kept for compatibility) -->
+        <div id="lead-step-1" style="display: none;"></div>
+        <div id="lead-step-2" style="display: none;"></div>
+        <div id="lead-step-3" style="display: none;"></div>
+        
+        <!-- Debug information section (hidden per requirements) -->
+        <div style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+          <details>
+            <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
+            <div style="margin-top: 10px;">
+              <div>
+                <strong>API Request:</strong>
+                <pre id="debug-api-request" style="background-color: #f5f5f5; padding: 10px; overflow-x: auto; font-size: 12px;">No request made yet</pre>
+              </div>
+              <div style="margin-top: 10px;">
+                <strong>API Response:</strong>
+                <pre id="debug-api-response" style="background-color: #f5f5f5; padding: 10px; overflow-x: auto; font-size: 12px;">No response received yet</pre>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load local Flatpickr JS -->
+  <script src="vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
