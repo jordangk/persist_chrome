@@ -2312,7 +2312,7 @@ async function createUnifiedLead() {
         // Show calendar section and update its information
         const calendarSection = document.getElementById('calendar-section');
         document.getElementById('scheduled-lead-email').textContent = email;
-        document.getElementById('scheduled-campaign-name').textContent = campaignSelect.options[campaignSelect.selectedIndex].text;
+        document.getElementById('scheduled-campaign-name').textContent = `${campaignSelect.options[campaignSelect.selectedIndex].text} (ID: ${campaignId})`;
         document.getElementById('scheduled-lead-id').textContent = lead.id;
         
         // Initialize the date picker
@@ -2346,25 +2346,30 @@ async function createUnifiedLead() {
             }
 
             try {
-              const scheduleResponse = await fetch(`https://api.persistiq.com/v1/campaigns/${campaignId}/leads`, {
+              // Formatear la fecha para el endpoint
+              const formattedDate = `${startDate} 14:30:00`;
+              const scheduleData = {
+                lead_id: lead.id,
+                campaign_id: campaignId,
+                start_date: formattedDate
+              };
+
+              // Enviar datos al endpoint
+              const response = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'x-api-key': apiKey
+                  'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                  lead_id: lead.id,
-                  start_date: startDate
-                })
+                body: JSON.stringify(scheduleData)
               });
 
-              if (scheduleResponse.ok) {
+              if (response.ok) {
                 showSuccess('schedule-success', 'Campaign scheduled successfully!');
-                // Disable the schedule button after successful scheduling
                 scheduleBtn.disabled = true;
                 scheduleBtn.textContent = 'Campaign Scheduled';
               } else {
-                throw new Error('Failed to schedule campaign');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to schedule campaign');
               }
             } catch (error) {
               showError('schedule-error', error.message);
@@ -2818,3 +2823,53 @@ document.querySelector('.tab[data-tab="add-lead-tab"]').addEventListener('click'
     testCalendar.value = today;
   }
 });
+
+// Función para crear un nuevo schedule
+async function createSchedule(leadId, campaignId, startDate) {
+    try {
+        const scheduleData = {
+            lead_id: leadId,
+            campaign_id: campaignId,
+            start_date: startDate
+        };
+
+        console.log('Sending schedule data:', scheduleData);
+
+        const response = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(scheduleData)
+        });
+
+        console.log('Schedule API response status:', response.status);
+        
+        // Intentar obtener el texto de la respuesta primero
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('Parsed response data:', data);
+        } catch (e) {
+            console.error('Error parsing response:', e);
+            throw new Error('Invalid response from schedule API');
+        }
+
+        if (!response.ok) {
+            const errorMessage = data.message || data.error || 'Failed to create schedule';
+            throw new Error(errorMessage);
+        }
+        
+        if (data.error) {
+            throw new Error(data.message || 'Unknown error from schedule API');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Error in createSchedule:', error);
+        throw new Error(`Failed to create schedule: ${error.message}`);
+    }
+}
