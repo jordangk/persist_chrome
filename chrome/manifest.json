@@ -1,35 +1,34 @@
 {
-  "name": "PersistIQ Lead Manager",
-  "version": "1.5.0",
-  "description": "Manage PersistIQ leads and campaigns directly from your browser",
   "manifest_version": 3,
-  "icons": {
-    "16": "assets/icon16.png",
-    "48": "assets/icon48.png",
-    "128": "assets/icon128.png"
-  },
+  "name": "PersistIQ Lead Manager",
+  "version": "1.0",
+  "description": "Manage leads and campaigns in PersistIQ",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "assets/icon16.png",
-      "48": "assets/icon48.png",
-      "128": "assets/icon128.png"
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
     }
   },
-  "browser_specific_settings": {
-    "chrome": {
-      "toolbar_pin": "force_pinned"
-    }
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
   },
-  "background": {
-    "service_worker": "background.js"
-  },
-  "permissions": [
-    "storage"
-  ],
-  "host_permissions": [
-    "https://api.persistiq.com/*"
-  ],
+  "web_accessible_resources": [{
+    "resources": [
+      "calendar.html",
+      "calendar.js",
+      "styles/*",
+      "images/*"
+    ],
+    "matches": ["<all_urls>"]
+  }],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

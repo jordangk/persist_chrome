@@ -14,12 +14,10 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize pop-up Flatpickr calendar for the schedule date input
   flatpickr("#schedule-date", { 
-    // inline: false is the default, so calendar opens on click
     minDate: "today",
-    dateFormat: "Y-m-d", // Standard date format for the input value
-    altInput: true,      // Show a user-friendly format in the input field
-    altFormat: "F j, Y", // User-friendly date format (e.g., July 26, 2024)
-    // No onChange needed here as the input value is updated directly
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "F j, Y"
   });
   
   // Initialize campaign selector for the Add Lead tab
@@ -30,11 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Restore last searched lead if available
       chrome.storage.local.get('lastSearchedLeadId', function(result) {
         if (result.lastSearchedLeadId) {
-          // If we're on the lead info tab or will switch to it soon, restore the lead
           const leadInfoTab = document.querySelector('.tab[data-tab="lead-info-tab"]');
           if (leadInfoTab && (leadInfoTab.classList.contains('active') || document.getElementById('lead-info-tab').style.display !== 'none')) {
             document.getElementById('lead-id-search').value = result.lastSearchedLeadId;
-            // Delay the search a bit to ensure the UI is ready
             setTimeout(() => searchLeadById(), 300);
           }
         }
@@ -142,15 +138,6 @@ function setupEventListeners() {
     if (campaignSelect.options.length <= 1) {
       loadCampaignsForSelect();
     }
-  });
-  
-  // Add another lead button
-  document.getElementById('add-another-lead').addEventListener('click', function() {
-    document.getElementById('lead-success-message').style.display = 'none';
-    resetLeadForm();
-    
-    // Scroll to top
-    document.getElementById('add-lead-tab').scrollTop = 0;
   });
   
   // Tabs with smooth transitions
@@ -954,40 +941,96 @@ function searchLeadById() {
  * Fetch lead fields for the edit form
  */
 function fetchLeadFields() {
+  const container = document.getElementById('lead-fields-container');
+  if (!container) return;
+
+  // Show loading message
+  container.innerHTML = '<div style="text-align: center; padding: 10px;"><p>Loading fields...</p></div>';
+
+  // Get API key from storage
   chrome.storage.local.get('apiKey', function(result) {
     const apiKey = result.apiKey;
     
     if (!apiKey) {
-      console.error('API key not found');
+      container.innerHTML = '<div class="error">API key not found</div>';
       return;
     }
-    
+
+    // Fetch lead fields from API
     fetch('https://api.persistiq.com/v1/lead_fields', {
-      method: 'GET',
       headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json'
+        'x-api-key': apiKey
       }
     })
-    .then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error('Failed to load lead fields');
-      }
-    })
+    .then(response => response.json())
     .then(data => {
-      if (data && data.lead_fields) {
-        currentLeadFields = data.lead_fields;
-        
-        // Setup edit button event handler now that we have the fields
-        setupEditButtonListeners();
+      // Check if data has the expected structure
+      if (data && data.lead_fields && Array.isArray(data.lead_fields)) {
+        dynamicallyBuildLeadForm(data.lead_fields);
+      } else {
+        throw new Error('Invalid response format from API');
       }
     })
     .catch(error => {
-      console.error('Error loading lead fields:', error);
+      container.innerHTML = `<div class="error">Error loading fields: ${error.message}</div>`;
     });
   });
+}
+
+function dynamicallyBuildLeadForm(leadFields) {
+  const container = document.getElementById('lead-fields-container');
+  if (!container) return;
+
+  let html = '';
+  
+  // Sort fields to put standard fields first
+  const standardFields = ['first_name', 'last_name', 'company', 'title', 'phone'];
+  leadFields.sort((a, b) => {
+    const aIndex = standardFields.indexOf(a.name);
+    const bIndex = standardFields.indexOf(b.name);
+    
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Skip email field as it's already in the form
+  leadFields = leadFields.filter(field => field.name !== 'email');
+  
+  // Add each field to the form
+  leadFields.forEach(field => {
+    const fieldId = `lead-field-${field.name}`;
+    html += `
+      <div class="form-group">
+        <label for="${fieldId}">${formatFieldName(field.name)}</label>
+    `;
+
+    if (field.type === 'select' && field.options) {
+      html += `
+        <select id="${fieldId}" name="${field.name}" class="form-control">
+          <option value="">Select ${formatFieldName(field.name)}</option>
+          ${field.options.map(option => `<option value="${option}">${option}</option>`).join('')}
+        </select>
+      `;
+    } else {
+      html += `
+        <input type="${field.type === 'date' ? 'date' : 'text'}"
+               id="${fieldId}"
+               name="${field.name}"
+               class="form-control"
+               ${field.required ? 'required' : ''}
+               placeholder="Enter ${formatFieldName(field.name)}">
+      `;
+    }
+
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+
+  // Restore any previously cached values
+  restoreFormFieldsData();
 }
 
 /**
@@ -1749,139 +1792,100 @@ function formatActivityType(type) {
  * Load lead fields from PersistIQ API and build the form
  */
 function loadLeadFields() {
-  // Get API key
+  const container = document.getElementById('lead-fields-container');
+  if (!container) return;
+
+  // Show loading message
+  container.innerHTML = '<div style="text-align: center; padding: 10px;"><p>Loading fields...</p></div>';
+
+  // Get API key from storage
   chrome.storage.local.get('apiKey', function(result) {
-    if (!result.apiKey) {
-      console.error('No API key found');
+    const apiKey = result.apiKey;
+    
+    if (!apiKey) {
+      container.innerHTML = '<div class="error">API key not found</div>';
       return;
     }
-    
-    // Get the container where fields will be added
-    const leadFieldsContainer = document.getElementById('lead-fields-container');
-    
-    // Show loading state
-    leadFieldsContainer.innerHTML = `
-      <div style="text-align: center; padding: 20px;">
-        <p>Loading lead fields...</p>
-      </div>
-    `;
-    
+
     // Fetch lead fields from API
     fetch('https://api.persistiq.com/v1/lead_fields', {
-      method: 'GET',
       headers: {
-        'x-api-key': result.apiKey,
-        'Content-Type': 'application/json'
+        'x-api-key': apiKey
       }
     })
-    .then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error('Failed to load lead fields');
-      }
-    })
+    .then(response => response.json())
     .then(data => {
-      if (data && data.lead_fields) {
-        currentLeadFields = data.lead_fields;
-        
-        // Build the form with the fields
+      // Check if data has the expected structure
+      if (data && data.lead_fields && Array.isArray(data.lead_fields)) {
         dynamicallyBuildLeadForm(data.lead_fields);
-        
-        // Setup edit button event handler now that we have the fields
-        setupEditButtonListeners();
       } else {
-        throw new Error('Unexpected lead fields response format');
+        throw new Error('Invalid response format from API');
       }
     })
     .catch(error => {
-      console.error('Error loading lead fields:', error);
-      leadFieldsContainer.innerHTML = `
-        <div style="text-align: center; padding: 20px;">
-          <p>Error loading lead fields: ${error.message}</p>
-        </div>
-      `;
+      container.innerHTML = `<div class="error">Error loading fields: ${error.message}</div>`;
     });
   });
 }
 
-/**
- * Dynamically build the lead form based on available fields
- * @param {Array} leadFields - The lead fields from the API
- */
 function dynamicallyBuildLeadForm(leadFields) {
-  // Get the container where the form fields will be added
-  const leadFieldsContainer = document.getElementById('lead-fields-container');
+  const container = document.getElementById('lead-fields-container');
+  if (!container) return;
+
+  let html = '';
   
-  // Create a temporary container to build the form
-  const tempContainer = document.createElement('div');
-  
-  // Skip fields we're already displaying
-  const skipFields = ['email'];
-  
-  // Sort the fields to keep standard fields at the top (name, company, etc.)
-  const standardFields = ['first_name', 'last_name', 'company_name', 'title', 'phone'];
+  // Sort fields to put standard fields first
+  const standardFields = ['first_name', 'last_name', 'company', 'title', 'phone'];
   leadFields.sort((a, b) => {
     const aIndex = standardFields.indexOf(a.name);
     const bIndex = standardFields.indexOf(b.name);
     
-    // If both are standard fields, sort by their order in standardFields
-    if (aIndex >= 0 && bIndex >= 0) {
-      return aIndex - bIndex;
-    }
-    
-    // If only a is a standard field, a comes first
-    if (aIndex >= 0) return -1;
-    
-    // If only b is a standard field, b comes first
-    if (bIndex >= 0) return 1;
-    
-    // Otherwise sort alphabetically
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
     return a.name.localeCompare(b.name);
   });
+
+  // Skip email field as it's already in the form
+  leadFields = leadFields.filter(field => field.name !== 'email');
   
-  // Create form groups for each lead field
+  // Add each field to the form
   leadFields.forEach(field => {
-    // Skip fields we're already displaying
-    if (skipFields.includes(field.name)) {
-      return;
+    const fieldId = `lead-field-${field.name}`;
+    html += `
+      <div class="form-group">
+        <label for="${fieldId}">${formatFieldName(field.name)}</label>
+    `;
+
+    if (field.type === 'select' && field.options) {
+      html += `
+        <select id="${fieldId}" name="${field.name}" class="form-control">
+          <option value="">Select ${formatFieldName(field.name)}</option>
+          ${field.options.map(option => `<option value="${option}">${option}</option>`).join('')}
+        </select>
+      `;
+    } else {
+      html += `
+        <input type="${field.type === 'date' ? 'date' : 'text'}"
+               id="${fieldId}"
+               name="${field.name}"
+               class="form-control"
+               ${field.required ? 'required' : ''}
+               placeholder="Enter ${formatFieldName(field.name)}">
+      `;
     }
-    
-    // Create a form group
-    const formGroup = document.createElement('div');
-    formGroup.className = 'form-group';
-    
-    // Create label
-    const label = document.createElement('label');
-    label.htmlFor = `field-${field.name}`;
-    label.textContent = field.label || formatFieldName(field.name);
-    
-    // Create input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.id = `field-${field.name}`;
-    input.name = field.name;
-    input.placeholder = field.label || formatFieldName(field.name);
-    
-    // Add to form group
-    formGroup.appendChild(label);
-    formGroup.appendChild(input);
-    
-    // Add to temporary container
-    tempContainer.appendChild(formGroup);
+
+    html += '</div>';
   });
-  
-  // Replace the container's content with the new form
-  leadFieldsContainer.innerHTML = '';
-  leadFieldsContainer.appendChild(tempContainer);
+
+  container.innerHTML = html;
+
+  // Restore any previously cached values
+  restoreFormFieldsData();
 }
 
-/**
- * Format a field name into a label
- * @param {string} name - The field name
- * @returns {string} - The formatted label
- */
 function formatFieldName(name) {
+  // Convert snake_case to Title Case
   return name
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -2235,168 +2239,166 @@ function loadCampaignsForStep3() {
 /**
  * Create a new lead with all information in one step
  */
-function createUnifiedLead() {
-  // Get the email
-  const email = document.getElementById('new-lead-email').value.trim();
-  
-  // Hide previous messages
-  document.getElementById('create-lead-error').style.display = 'none';
-  document.getElementById('add-lead-error').style.display = 'none';
-  document.getElementById('add-to-campaign-error').style.display = 'none';
-  document.getElementById('create-lead-success').style.display = 'none';
-  
-  // Validate email
-  if (!email) {
-    showError('add-lead-error', 'Please enter an email address');
-    return;
-  }
-  
-  // Get API key from storage
-  chrome.storage.local.get(['apiKey', 'selectedUser', 'selectedMailbox'], function(result) {
-    const apiKey = result.apiKey;
-    const selectedUser = result.selectedUser;
-    const selectedMailbox = result.selectedMailbox;
-    
+async function createUnifiedLead() {
+  try {
+    const storage = await new Promise((resolve) => {
+      chrome.storage.local.get(['apiKey'], resolve);
+    });
+
+    const { apiKey } = storage;
+
     if (!apiKey) {
-      showError('create-lead-error', 'API key not found');
+      showError('create-lead-error', 'API key not found. Please reconnect.');
       return;
     }
-    
-    if (!selectedUser) {
-      showError('create-lead-error', 'User not selected');
+
+    const emailInput = document.getElementById('new-lead-email');
+    const email = emailInput?.value;
+    const campaignSelect = document.getElementById('add-to-campaign-select');
+    const campaignId = campaignSelect?.value;
+
+    // Hide any previous error messages
+    const errorElements = document.querySelectorAll('.error, .success');
+    errorElements.forEach(element => {
+      element.style.display = 'none';
+    });
+
+    if (!email) {
+      showError('create-lead-error', 'Email is required');
       return;
     }
-    
-    if (!selectedMailbox) {
-      showError('create-lead-error', 'Mailbox not selected');
-      return;
-    }
-    
-    // Collect all field values from the form
-    const fields = document.querySelectorAll('[id^="lead-field-"]');
-    const leadData = { email };
-    
-    fields.forEach(field => {
-      if (field.value.trim()) {
-        const fieldName = field.name || field.id.replace('lead-field-', '');
-        leadData[fieldName] = field.value.trim();
+
+    // Get all form fields
+    const formData = {
+      email: email
+    };
+
+    // Add other form fields if they exist
+    const formFields = document.querySelectorAll('#lead-fields-container input, #lead-fields-container select');
+    formFields.forEach(field => {
+      if (field.value) {
+        formData[field.id.replace('lead-field-', '')] = field.value;
       }
     });
-    
-    // Get selected campaign (if any)
-    const campaignId = document.getElementById('add-to-campaign-select').value;
-    
-    // Disable button during API call
-    const createBtn = document.getElementById('create-unified-lead');
-    const originalBtnText = createBtn.textContent;
-    createBtn.textContent = 'Creating...';
-    createBtn.disabled = true;
-    
-    // Debug: Show what we're sending
-    document.getElementById('debug-api-request').textContent = JSON.stringify(leadData, null, 2);
-    
-    // Create lead
-    fetch('https://api.persistiq.com/v1/leads', {
+
+    console.log('Sending form data:', formData);
+
+    // Create the lead
+    const response = await fetch('https://api.persistiq.com/v1/leads', {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
       },
-      body: JSON.stringify({ leads: [leadData] })
-    })
-    .then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        return response.text().then(text => {
-          try {
-            const errorData = JSON.parse(text);
-            throw new Error(errorData.error || `Error ${response.status}: Failed to create lead`);
-          } catch (e) {
-            throw new Error(`Error ${response.status}: ${text || 'Failed to create lead'}`);
-          }
-        });
-      }
-    })
-    .then(data => {
-      document.getElementById('debug-api-response').textContent = JSON.stringify(data, null, 2);
-      
-      if (!data.leads || !data.leads[0] || !data.leads[0].id) {
-        throw new Error('Invalid response from server');
-      }
-      
-      const leadId = data.leads[0].id;
-      
-      // Apply smooth transition effect to success message
-      const successMessage = document.getElementById('lead-success-message');
-      successMessage.style.opacity = '0';
-      successMessage.style.display = 'block';
-      
-      // If a campaign was selected, add the lead to the campaign
+      body: JSON.stringify({
+        leads: [formData]
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create lead');
+    }
+
+    if (data.leads && data.leads.length > 0) {
+      const lead = data.leads[0];
+      console.log('Lead created successfully:', lead);
+
+      // Hide the form section
+      document.getElementById('lead-form-section').style.display = 'none';
+
       if (campaignId) {
-        return fetch(`https://api.persistiq.com/v1/campaigns/${campaignId}/leads`, {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            lead_id: leadId,
-            mailbox_id: selectedMailbox
-          })
-        })
-        .then(response => {
-          if (response.ok) {
-            return { 
-              leadCreated: true, 
-              leadId, 
-              campaignAdded: true,
-              message: `Lead created and added to campaign successfully!` 
-            };
-          } else {
-            return { 
-              leadCreated: true, 
-              leadId, 
-              campaignAdded: false,
-              message: `Lead created but could not be added to campaign.` 
-            };
-          }
-        });
-      } else {
-        // If no campaign was selected, just return the lead data
-        return { 
-          leadCreated: true, 
-          leadId, 
-          campaignAdded: false,
-          message: `Lead created successfully!` 
+        // Show calendar section and update its information
+        const calendarSection = document.getElementById('calendar-section');
+        document.getElementById('scheduled-lead-email').textContent = email;
+        document.getElementById('scheduled-campaign-name').textContent = campaignSelect.options[campaignSelect.selectedIndex].text;
+        document.getElementById('scheduled-lead-id').textContent = lead.id;
+        
+        // Initialize the date picker
+        const dateInput = document.getElementById('schedule-date');
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+        dateInput.value = today;
+
+        // Show the calendar section
+        calendarSection.style.display = 'block';
+
+        // Initialize Flatpickr
+        if (typeof flatpickr === 'function') {
+          flatpickr(dateInput, {
+            minDate: "today",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "F j, Y",
+            appendTo: calendarSection
+          });
+        }
+
+        // Add event listener for Schedule Campaign button
+        const scheduleBtn = document.getElementById('schedule-btn');
+        if (scheduleBtn) {
+          scheduleBtn.onclick = async () => {
+            const startDate = dateInput?.value;
+            if (!startDate) {
+              showError('schedule-error', 'Please select a start date');
+              return;
+            }
+
+            try {
+              const scheduleResponse = await fetch(`https://api.persistiq.com/v1/campaigns/${campaignId}/leads`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': apiKey
+                },
+                body: JSON.stringify({
+                  lead_id: lead.id,
+                  start_date: startDate
+                })
+              });
+
+              if (scheduleResponse.ok) {
+                showSuccess('schedule-success', 'Campaign scheduled successfully!');
+                // Disable the schedule button after successful scheduling
+                scheduleBtn.disabled = true;
+                scheduleBtn.textContent = 'Campaign Scheduled';
+              } else {
+                throw new Error('Failed to schedule campaign');
+              }
+            } catch (error) {
+              showError('schedule-error', error.message);
+            }
+          };
+        }
+      }
+
+      // Add event listener for Add Another Lead button
+      const addAnotherBtn = document.getElementById('add-another-lead');
+      if (addAnotherBtn) {
+        addAnotherBtn.onclick = () => {
+          // Reset the form
+          resetLeadForm();
+          // Hide calendar section and show form section
+          document.getElementById('calendar-section').style.display = 'none';
+          document.getElementById('lead-form-section').style.display = 'block';
+          // Clear the form fields
+          document.getElementById('new-lead-email').value = '';
+          document.getElementById('add-to-campaign-select').value = '';
+          // Reset any error or success messages
+          document.querySelectorAll('.error, .success').forEach(el => el.style.display = 'none');
         };
       }
-    })
-    .then(result => {
-      // Show success message with fade-in effect
-      document.getElementById('created-lead-info').textContent = result.message;
-      
-      // Fade in the success message
-      setTimeout(() => {
-        document.getElementById('lead-success-message').style.opacity = '1';
-        document.getElementById('create-unified-lead').style.display = 'none';
-      }, 100);
-      
-      // Scroll to see success message
-      document.getElementById('add-lead-tab').scrollTop = document.getElementById('add-lead-tab').scrollHeight;
-    })
-    .catch(error => {
-      console.error('Error creating lead:', error);
-      showError('create-lead-error', error.message || 'Failed to create lead');
-    })
-    .finally(() => {
-      // Re-enable button
-      createBtn.textContent = originalBtnText;
-      createBtn.disabled = false;
-    });
-  });
+    } else {
+      throw new Error('Unexpected response format');
+    }
+  } catch (error) {
+    console.error('Error creating lead:', error);
+    showError('create-lead-error', 'Error creating lead: ' + error.message);
+  }
 }
 
+// Modify resetLeadForm function to handle the new layout
 function resetLeadForm() {
   // Reset email
   document.getElementById('new-lead-email').value = '';
@@ -2410,25 +2412,20 @@ function resetLeadForm() {
   });
   
   // Reset error and success messages
-  document.getElementById('add-lead-error').style.display = 'none';
-  document.getElementById('create-lead-error').style.display = 'none';
-  document.getElementById('create-lead-success').style.display = 'none';
-  document.getElementById('add-to-campaign-error').style.display = 'none';
-  document.getElementById('add-to-campaign-success').style.display = 'none';
+  document.querySelectorAll('.error, .success').forEach(el => el.style.display = 'none');
   
-  // Show create button and hide success message
-  document.getElementById('create-unified-lead').style.display = 'block';
-  document.getElementById('lead-success-message').style.display = 'none';
+  // Show form section and hide calendar section
+  document.getElementById('lead-form-section').style.display = 'block';
+  document.getElementById('calendar-section').style.display = 'none';
   
   // Ensure form is visible
-  if (document.getElementById('lead-fields-container')) {
-    document.getElementById('lead-fields-container').style.display = 'block';
-  }
+  document.getElementById('unified-lead-form').style.display = 'block';
   
-  // Reset to step 1 (for backward compatibility)
-  document.getElementById('lead-step-3').style.display = 'none';
-  document.getElementById('lead-step-2').style.display = 'none';
-  document.getElementById('lead-step-1').style.display = 'none';
+  // Reset campaign select
+  const campaignSelect = document.getElementById('add-to-campaign-select');
+  if (campaignSelect) {
+    campaignSelect.value = '';
+  }
   
   // Reload lead fields
   loadLeadFields();
@@ -2587,9 +2584,12 @@ function saveFormFieldsData() {
   
   // Check which step is currently visible
   let currentStep = 1;
-  if (document.getElementById('lead-step-2').style.display === 'block') {
+  const step2Element = document.getElementById('lead-step-2');
+  const step3Element = document.getElementById('lead-step-3');
+  
+  if (step2Element && step2Element.style.display === 'block') {
     currentStep = 2;
-  } else if (document.getElementById('lead-step-3').style.display === 'block') {
+  } else if (step3Element && step3Element.style.display === 'block') {
     currentStep = 3;
   }
   
@@ -2786,5 +2786,35 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleSubscribe(leadId);
       }
     });
+  }
+});
+
+function createDatePicker(inputElement) {
+  const datePicker = document.createElement('input');
+  datePicker.type = 'date';
+  datePicker.className = 'date-picker';
+  datePicker.style.width = '100%';
+  datePicker.style.padding = '8px';
+  datePicker.style.border = '1px solid #ccc';
+  datePicker.style.borderRadius = '4px';
+  datePicker.style.marginTop = '8px';
+  
+  // Set min date to today
+  const today = new Date();
+  datePicker.min = today.toISOString().split('T')[0];
+  
+  // Replace the input element with the date picker
+  inputElement.parentNode.replaceChild(datePicker, inputElement);
+  
+  return datePicker;
+}
+
+// Initialize the test calendar when the tab is shown
+document.querySelector('.tab[data-tab="add-lead-tab"]').addEventListener('click', function() {
+  const testCalendar = document.getElementById('test-calendar');
+  if (testCalendar) {
+    const today = new Date().toISOString().split('T')[0];
+    testCalendar.min = today;
+    testCalendar.value = today;
   }
 });
