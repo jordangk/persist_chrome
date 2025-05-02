@@ -339,6 +339,616 @@
     .flatpickr-calendar {
       z-index: 9999 !important;
     }
+
+    /* Estilos para la sección de Activity */
+    .activity-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 10px;
+    }
+
+    .activity-item {
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background-color: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .activity-item:hover {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+
+    .activity-date {
+      font-weight: bold;
+      color: #4f46e5;
+      margin-bottom: 4px;
+      font-size: 0.9em;
+    }
+
+    .activity-type {
+      font-weight: 500;
+      color: #1f2937;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin: 4px 0;
+      background-color: #f3f4f6;
+    }
+
+    .activity-campaign {
+      color: #6b7280;
+      font-size: 0.9em;
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .activity-description {
+      color: #4b5563;
+      margin: 4px 0;
+      font-size: 0.9em;
+    }
+
+    /* Estilos específicos para tipos de actividad */
+    .activity-type.message-failed {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+
+    .activity-type.campaign-lead-created {
+      background-color: #dcfce7;
+      color: #16a34a;
+    }
+
+    .activity-type.campaign-lead-advanced {
+      background-color: #dbeafe;
+      color: #2563eb;
+    }
+
+    .no-activity {
+      text-align: center;
+      color: #6b7280;
+      font-style: italic;
+      padding: 20px;
+    }
+
+    .loading-indicator {
+      text-align: center;
+      color: #6b7280;
+      padding: 20px;
+    }
+
+    /* Estilos para la sección de Campaigns */
+    .campaigns-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 10px;
+    }
+
+    .campaign-list-item {
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background-color: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .campaign-list-item:hover {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+
+    .campaign-info {
+      flex-grow: 1;
+    }
+
+    .campaign-name {
+      font-weight: 500;
+      color: #1f2937;
+      font-size: 1em;
+      margin-bottom: 4px;
+    }
+
+    .campaign-action {
+      margin-left: 12px;
+    }
+
+    .campaign-action button {
+      min-width: 80px;
+    }
+
+    button.add-campaign {
+      background-color: #4f46e5;
+      color: white;
+    }
+
+    button.remove-campaign {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .campaigns-header {
+      font-weight: bold;
+      color: #4f46e5;
+      margin-bottom: 16px;
+      font-size: 1.1em;
+    }
+
+    /* Estilos para la sección de Lead Info */
+    .info-section {
+      margin-bottom: 20px;
+    }
+
+    .info-section label {
+      display: block;
+      font-weight: bold;
+      color: #4f46e5;
+      margin-bottom: 8px;
+      font-size: 1em;
+    }
+
+    .info-content {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .info-content:hover {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    /* Estilos para los campos de información básica */
+    #lead-basic-info {
+      display: grid;
+      gap: 12px;
+    }
+
+    #lead-basic-info p {
+      margin: 0;
+      padding: 0;
+      color: #374151;
+    }
+
+    #lead-basic-info strong {
+      color: #1f2937;
+      font-weight: 500;
+    }
+
+    /* Estilos para la sección de búsqueda */
+    .search-section {
+      margin-bottom: 24px;
+    }
+
+    .search-section .form-group {
+      margin-bottom: 0;
+    }
+
+    .search-section input {
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    .search-section button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    /* Ajustes para el botón de edición */
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.875rem;
+    }
+
+    /* Estilos para los mensajes de error y éxito */
+    .error, .success {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+
+    .error {
+      background-color: #fee2e2;
+      border: 1px solid #fecaca;
+    }
+
+    .success {
+      background-color: #dcfce7;
+      border: 1px solid #bbf7d0;
+    }
+
+    /* Estilos mejorados para el calendario y selección de hora */
+    .calendar-section {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 24px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .calendar-section h3 {
+      color: #4f46e5;
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.1em;
+    }
+
+    .datetime-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .datetime-inputs .form-group {
+      margin-bottom: 0;
+    }
+
+    .datetime-field {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #1f2937;
+      background-color: #ffffff;
+    }
+
+    .datetime-field:focus {
+      border-color: #4f46e5;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    }
+
+    .datetime-field:disabled {
+      background-color: #f3f4f6;
+      cursor: not-allowed;
+    }
+
+    /* Estilos específicos para Flatpickr */
+    .flatpickr-calendar {
+      background: #ffffff;
+      border: none !important;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+      margin-top: 8px;
+      font-family: inherit;
+      width: 307px !important;
+      max-width: 307px !important;
+      font-size: 14px;
+      position: absolute !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+    }
+
+    .flatpickr-calendar.open {
+      display: inline-block;
+      z-index: 100;
+    }
+
+    .flatpickr-months {
+      padding-top: 8px;
+      background: #ffffff;
+      border-radius: 10px 10px 0 0;
+    }
+
+    .flatpickr-current-month {
+      font-size: 14px !important;
+      padding: 0 !important;
+    }
+
+    .flatpickr-monthDropdown-months {
+      font-weight: 500 !important;
+    }
+
+    .flatpickr-weekdays {
+      background: #ffffff;
+      padding: 8px 0;
+    }
+
+    .flatpickr-weekday {
+      font-size: 12px !important;
+      color: #6b7280 !important;
+    }
+
+    .flatpickr-day {
+      border-radius: 6px !important;
+      margin: 2px;
+      height: 32px !important;
+      line-height: 32px !important;
+      font-size: 13px;
+      color: #374151;
+    }
+
+    .flatpickr-day.selected {
+      background: #4f46e5 !important;
+      border-color: #4f46e5 !important;
+      color: #ffffff !important;
+    }
+
+    .flatpickr-day:hover {
+      background: #e0e7ff !important;
+      border-color: #e0e7ff !important;
+    }
+
+    .flatpickr-day.today {
+      border-color: #4f46e5 !important;
+      color: #4f46e5 !important;
+    }
+
+    /* Estilos para el selector de tiempo */
+    .flatpickr-time {
+      border-top: 1px solid #e2e8f0 !important;
+      border-radius: 0 0 10px 10px;
+      max-height: 40px;
+      height: 40px !important;
+      line-height: 40px;
+    }
+
+    .flatpickr-time input {
+      height: 38px !important;
+      font-size: 14px !important;
+      color: #1f2937 !important;
+      font-weight: 500;
+      background: transparent !important;
+    }
+
+    .flatpickr-time input:hover,
+    .flatpickr-time input:focus {
+      background: #f3f4f6 !important;
+    }
+
+    .flatpickr-time .flatpickr-am-pm {
+      height: 38px !important;
+      color: #1f2937 !important;
+      font-size: 14px !important;
+    }
+
+    .numInputWrapper:hover {
+      background: #f3f4f6 !important;
+    }
+
+    /* Contenedor del calendario */
+    .calendar-container {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      overflow: visible;
+    }
+
+    /* Ajustes para los inputs de fecha y hora */
+    .datetime-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .datetime-field {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #1f2937;
+      background-color: #ffffff;
+      cursor: pointer;
+    }
+
+    /* Ajustes para el popup en general */
+    body {
+      width: 350px !important;
+      min-width: 350px !important;
+      max-width: 350px !important;
+      overflow-x: hidden !important;
+    }
+
+    .container {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 16px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Contenedor del calendario */
+    .calendar-section {
+      position: relative;
+      padding: 16px;
+      margin: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .calendar-container {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Ajustes para los inputs de fecha y hora */
+    .datetime-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .datetime-field {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #1f2937;
+      background-color: #ffffff;
+      cursor: pointer;
+    }
+
+    /* Estilos específicos para Flatpickr */
+    .flatpickr-calendar {
+      width: 100% !important;
+      max-width: 320px !important;
+      min-width: 280px !important;
+      font-size: 14px !important;
+      margin: 0 auto !important;
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      z-index: 9999 !important;
+      background: #ffffff !important;
+      border-radius: 10px !important;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .flatpickr-calendar.open {
+      display: flex !important;
+      flex-direction: column !important;
+    }
+
+    .flatpickr-months {
+      display: flex !important;
+      padding: 8px !important;
+      background: #ffffff !important;
+      border-radius: 10px 10px 0 0 !important;
+    }
+
+    .flatpickr-month {
+      height: auto !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+
+    .flatpickr-current-month {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+      height: auto !important;
+      position: relative !important;
+      transform: none !important;
+      left: 0 !important;
+      font-size: 14px !important;
+    }
+
+    .flatpickr-weekdays {
+      margin: 0 !important;
+      padding: 8px 0 !important;
+    }
+
+    .flatpickr-days {
+      width: 100% !important;
+      max-width: 100% !important;
+      border: none !important;
+    }
+
+    .dayContainer {
+      width: 100% !important;
+      min-width: 100% !important;
+      max-width: 100% !important;
+      display: grid !important;
+      grid-template-columns: repeat(7, 1fr) !important;
+      justify-items: center !important;
+      padding: 0 8px !important;
+    }
+
+    .flatpickr-day {
+      width: 32px !important;
+      height: 32px !important;
+      line-height: 32px !important;
+      margin: 2px !important;
+      flex: none !important;
+      display: inline-flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    /* Estilos para el selector de tiempo */
+    .flatpickr-time {
+      display: flex !important;
+      align-items: center !important;
+      height: 40px !important;
+      border-top: 1px solid #e2e8f0 !important;
+    }
+
+    .flatpickr-time input {
+      height: 38px !important;
+      font-size: 14px !important;
+      border: none !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: textfield !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      text-align: center !important;
+    }
+
+    .flatpickr-time .flatpickr-am-pm {
+      height: 38px !important;
+      line-height: 38px !important;
+      width: 60px !important;
+      font-size: 14px !important;
+      border-left: 1px solid #e2e8f0 !important;
+    }
+
+    /* Overlay para el fondo */
+    .flatpickr-calendar::before,
+    .flatpickr-calendar::after {
+      display: none !important;
+    }
+
+    .calendar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9998;
+      display: none;
+    }
+
+    .calendar-overlay.active {
+      display: block;
+    }
+
+    /* Lead stats styles */
+    .lead-stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .lead-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .lead-stat strong {
+      color: #1f2937;
+    }
   </style>
 </head>
 <body>
@@ -436,9 +1046,12 @@
           <input type="text" id="campaign-search" placeholder="Search campaigns...">
         </div>
         
-        <div id="campaigns-container">
-          <div style="text-align: center; padding: 20px;">
-            <p>Loading campaigns...</p>
+        <div class="campaigns-section">
+          <div class="campaigns-header">Your Campaigns</div>
+          <div id="campaigns-container">
+            <div style="text-align: center; padding: 20px;">
+              <p>Loading campaigns...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -452,6 +1065,7 @@
             <button id="search-lead-email-btn" style="flex-shrink: 0;">Get Info</button>
           </div>
         </div>
+        
         <!-- Hidden lead ID field -->
         <input type="hidden" id="lead-id-search">
         
@@ -459,36 +1073,36 @@
         
         <div id="lead-details" style="display: none;">
           <!-- Basic lead info section -->
-          <div class="form-group">
+          <div class="form-group info-section">
             <label>Lead Overview</label>
-            <div id="lead-basic-info" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+            <div id="lead-basic-info" class="info-content">
               <!-- Will be populated dynamically with basic lead info -->
             </div>
           </div>
 
           <!-- Lead campaigns section -->
-          <div class="form-group">
+          <div class="form-group info-section">
             <label>Campaigns</label>
-            <div id="lead-campaigns" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+            <div id="lead-campaigns" class="info-content">
               <!-- Will be populated dynamically -->
             </div>
           </div>
           
           <!-- Lead activity section -->
-          <div class="form-group">
+          <div class="form-group info-section">
             <label>Activity</label>
-            <div id="lead-activity" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+            <div id="lead-activity" class="activity-section">
               <!-- Will be populated dynamically -->
             </div>
           </div>
           
           <!-- Lead attributes section with edit capability -->
-          <div class="form-group">
+          <div class="form-group info-section">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <label>Attributes</label>
               <button id="edit-lead-btn" class="btn-secondary btn-sm">Edit</button>
             </div>
-            <div id="lead-attributes" style="padding: 12px; background-color: #f9fafb; border-radius: 4px; margin-bottom: 12px;">
+            <div id="lead-attributes" class="info-content">
               <!-- Will be populated dynamically -->
             </div>
             
@@ -555,17 +1169,23 @@
         </div>
 
         <!-- Calendar Section -->
-        <div id="calendar-section" style="display: none;">
+        <div id="calendar-section" class="calendar-section" style="display: none;">
           <div class="calendar-container">
             <h3>Schedule Campaign</h3>
-            <div class="lead-info" style="background-color: #f3f4f6; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+            <div class="lead-info">
               <p><strong>Lead Email:</strong> <span id="scheduled-lead-email"></span></p>
               <p><strong>Campaign:</strong> <span id="scheduled-campaign-name"></span></p>
               <p><strong>Lead ID:</strong> <span id="scheduled-lead-id"></span></p>
             </div>
-            <div class="form-group">
-              <label for="schedule-date">Start Date</label>
-              <input type="date" id="schedule-date" required>
+            <div class="datetime-inputs">
+              <div class="form-group">
+                <label for="schedule-date">Start Date</label>
+                <input type="text" id="schedule-date" class="datetime-field" placeholder="Select date" required>
+              </div>
+              <div class="form-group">
+                <label for="schedule-time">Start Time</label>
+                <input type="text" id="schedule-time" class="datetime-field" placeholder="Select time" required>
+              </div>
             </div>
             <div id="schedule-error" class="error" style="display: none;"></div>
             <div id="schedule-success" class="success" style="display: none;"></div>

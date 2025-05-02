@@ -12,6 +12,97 @@ document.addEventListener('DOMContentLoaded', function() {
   initializePopup();
   setupEventListeners();
   
+  // Crear el overlay para el fondo
+  const overlay = document.createElement('div');
+  overlay.className = 'calendar-overlay';
+  document.body.appendChild(overlay);
+
+  // Initialize date picker
+  const datePicker = flatpickr("#schedule-date", { 
+    minDate: "today",
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "F j, Y",
+    disableMobile: true,
+    static: true,
+    inline: false,
+    position: "auto",
+    onOpen: function() {
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    },
+    onClose: function() {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    },
+    onChange: function(selectedDates) {
+      updateTimePickerRestrictions(selectedDates[0]);
+      // Log the selected date
+      console.log('Date selected:', selectedDates[0]);
+      console.log('Formatted date:', selectedDates[0].toISOString().split('T')[0]);
+    }
+  });
+
+  // Initialize time picker
+  const timePicker = flatpickr("#schedule-time", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "h:i K",
+    time_24hr: false,
+    minuteIncrement: 15,
+    defaultHour: new Date().getHours() + 1,
+    defaultMinute: 0,
+    disableMobile: true,
+    static: true,
+    inline: false,
+    position: "auto",
+    onOpen: function() {
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    },
+    onClose: function() {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Cerrar los pickers al hacer click en el overlay
+  overlay.addEventListener('click', function() {
+    datePicker.close();
+    timePicker.close();
+  });
+
+  function updateTimePickerRestrictions(selectedDate) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const selected = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    
+    if (selected.getTime() === today.getTime()) {
+      const currentHour = now.getHours();
+      const currentMinute = Math.ceil(now.getMinutes() / 15) * 15;
+      
+      timePicker.set('minTime', `${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+      
+      const selectedTime = timePicker.selectedDates[0];
+      if (selectedTime) {
+        const selectedHour = selectedTime.getHours();
+        const selectedMinute = selectedTime.getMinutes();
+        
+        if (selectedHour < currentHour || 
+            (selectedHour === currentHour && selectedMinute < currentMinute)) {
+          timePicker.setDate(new Date().setHours(currentHour, currentMinute));
+        }
+      }
+    } else {
+      timePicker.set('minTime', "00:00");
+    }
+  }
+
+  // Actualizar las restricciones de hora al cargar
+  if (datePicker.selectedDates[0]) {
+    updateTimePickerRestrictions(datePicker.selectedDates[0]);
+  }
+  
   // Initialize pop-up Flatpickr calendar for the schedule date input
   flatpickr("#schedule-date", { 
     minDate: "today",
@@ -617,46 +708,30 @@ function loadCampaigns() {
  */
 function createCampaignElement(campaign) {
   const div = document.createElement('div');
-  div.className = 'campaign-item';
+  div.className = 'campaign-list-item';
   div.setAttribute('data-campaign-id', campaign.id);
   
-  // Use stats from the campaign data
-  const contactedCount = campaign.stats?.prospects_contacted || 0;
-  const reachedCount = campaign.stats?.prospects_reached || 0;
-  const openedCount = campaign.stats?.prospects_opened || 0;
-  const repliedCount = campaign.stats?.prospects_replied || 0;
+  const campaignInfo = document.createElement('div');
+  campaignInfo.className = 'campaign-info';
   
-  // Show creator info
-  const creatorName = campaign.creator?.name || 'Unknown';
+  const campaignName = document.createElement('div');
+  campaignName.className = 'campaign-name';
+  campaignName.textContent = campaign.name;
   
-  div.innerHTML = `
-    <div class="campaign-header">
-      <div class="campaign-title">${campaign.name}</div>
-      <div class="campaign-creator">Created by: ${creatorName}</div>
-    </div>
-    <div class="campaign-stats">
-      <div class="campaign-stat">
-        <span>${contactedCount}</span> Contacted
-      </div>
-      <div class="campaign-stat">
-        <span>${reachedCount}</span> Reached
-      </div>
-      <div class="campaign-stat">
-        <span>${openedCount}</span> Opened
-      </div>
-      <div class="campaign-stat">
-        <span>${repliedCount}</span> Replied
-      </div>
-    </div>
-    <div class="campaign-status-container">
-      <div id="campaign-status-${campaign.id}" class="campaign-status"></div>
-    </div>
-    <div class="campaign-actions" style="display: flex; justify-content: flex-end; align-items: center; margin-top: 8px;">
-      <a href="https://persistiq.com/app#/campaigns/${campaign.id}" target="_blank" style="display: inline-block; padding: 4px 8px; background-color: #f3f4f6; border-radius: 4px; text-decoration: none; color: #374151; font-size: 12px;">
-        View in PersistIQ
-      </a>
-    </div>
-  `;
+  campaignInfo.appendChild(campaignName);
+  
+  const campaignAction = document.createElement('div');
+  campaignAction.className = 'campaign-action';
+  
+  const actionBtn = document.createElement('button');
+  // Aquí puedes determinar si debe ser Add o Remove según la lógica de tu aplicación
+  actionBtn.className = 'add-campaign';
+  actionBtn.textContent = 'Add';
+  
+  campaignAction.appendChild(actionBtn);
+  
+  div.appendChild(campaignInfo);
+  div.appendChild(campaignAction);
   
   return div;
 }
@@ -1027,7 +1102,26 @@ function dynamicallyBuildLeadForm(leadFields) {
     html += '</div>';
   });
 
+  // Add the new date field at the end (initially hidden)
+  html += `
+    <div class="form-group" id="date-field-container" style="display: none;">
+      <label for="lead-field-date">Date</label>
+      <input type="date" id="lead-field-date" name="date" class="form-control">
+    </div>
+  `;
+
   container.innerHTML = html;
+
+  // Add event listener to campaign select
+  const campaignSelect = document.getElementById('add-to-campaign-select');
+  if (campaignSelect) {
+    campaignSelect.addEventListener('change', function() {
+      const dateFieldContainer = document.getElementById('date-field-container');
+      if (dateFieldContainer) {
+        dateFieldContainer.style.display = this.value ? 'block' : 'none';
+      }
+    });
+  }
 
   // Restore any previously cached values
   restoreFormFieldsData();
@@ -1293,12 +1387,10 @@ function displayLeadDetails(lead) {
     statsContainer.className = 'lead-stats';
     statsContainer.innerHTML = `
       <div class="lead-stat">
-        <div class="lead-stat-label">Emails Sent</div>
-        <div class="lead-stat-value">${lead.sent_count || 0}</div>
+        <strong>Emails Sent:</strong> ${lead.sent_count || 0}
       </div>
       <div class="lead-stat">
-        <div class="lead-stat-label">Replies</div>
-        <div class="lead-stat-value">${lead.replied_count || 0}</div>
+        <strong>Replies:</strong> ${lead.replied_count || 0}
       </div>
     `;
     
@@ -1458,25 +1550,33 @@ function fetchLeadCampaigns(leadId) {
           const isLeadInCampaign = data.leadCampaigns.some(c => c.id === campaign.id);
           
           const campaignItem = document.createElement('div');
-          campaignItem.className = 'campaign-card';
+          campaignItem.className = 'campaign-list-item';
           campaignItem.setAttribute('data-campaign-id', campaign.id);
           
-          // Create campaign content
-          campaignItem.innerHTML = `
-            <div class="campaign-card-header">
-              <div class="campaign-card-title">${campaign.name}</div>
-            </div>
-            <div class="campaign-actions">
-              <button class="campaign-action-btn ${isLeadInCampaign ? 'remove' : 'add'}" data-campaign-id="${campaign.id}">
-                ${isLeadInCampaign ? 'Remove' : 'Add'}
-              </button>
-            </div>
-          `;
+          const campaignInfo = document.createElement('div');
+          campaignInfo.className = 'campaign-info';
+          
+          const campaignName = document.createElement('div');
+          campaignName.className = 'campaign-name';
+          campaignName.textContent = campaign.name;
+          
+          campaignInfo.appendChild(campaignName);
+          
+          const campaignAction = document.createElement('div');
+          campaignAction.className = 'campaign-action';
+          
+          const campaignBtn = document.createElement('button');
+          campaignBtn.className = isLeadInCampaign ? 'remove-campaign' : 'add-campaign';
+          campaignBtn.textContent = isLeadInCampaign ? 'Remove' : 'Add';
+          
+          campaignAction.appendChild(campaignBtn);
+          
+          campaignItem.appendChild(campaignInfo);
+          campaignItem.appendChild(campaignAction);
           
           // Add click handler to the button
-          const actionButton = campaignItem.querySelector('.campaign-action-btn');
-          actionButton.addEventListener('click', function() {
-            const isCurrentlyInCampaign = this.classList.contains('remove');
+          campaignBtn.addEventListener('click', function() {
+            const isCurrentlyInCampaign = this.classList.contains('remove-campaign');
             
             // Disable button and show loading state
             this.disabled = true;
@@ -1563,7 +1663,7 @@ function addLeadToCampaign(campaignId, leadId) {
       console.log('Add to campaign response:', data);
       
       // Update the button state immediately
-      const button = document.querySelector(`.campaign-action-btn[data-campaign-id="${campaignId}"]`);
+      const button = document.querySelector(`.add-campaign[data-campaign-id="${campaignId}"]`);
       if (button) {
         button.classList.remove('add');
         button.classList.add('remove');
@@ -1579,7 +1679,7 @@ function addLeadToCampaign(campaignId, leadId) {
       console.error('Error adding lead to campaign:', error);
       
       // Reset button state on error
-      const button = document.querySelector(`.campaign-action-btn[data-campaign-id="${campaignId}"]`);
+      const button = document.querySelector(`.add-campaign[data-campaign-id="${campaignId}"]`);
       if (button) {
         button.classList.remove('remove');
         button.classList.add('add');
@@ -1622,7 +1722,7 @@ function removeLeadFromCampaign(campaignId, leadId) {
       console.log('Remove from campaign response:', data);
       
       // Update the button state immediately
-      const button = document.querySelector(`.campaign-action-btn[data-campaign-id="${campaignId}"]`);
+      const button = document.querySelector(`.add-campaign[data-campaign-id="${campaignId}"]`);
       if (button) {
         button.classList.remove('remove');
         button.classList.add('add');
@@ -1638,7 +1738,7 @@ function removeLeadFromCampaign(campaignId, leadId) {
       console.error('Error removing lead from campaign:', error);
       
       // Reset button state on error
-      const button = document.querySelector(`.campaign-action-btn[data-campaign-id="${campaignId}"]`);
+      const button = document.querySelector(`.add-campaign[data-campaign-id="${campaignId}"]`);
       if (button) {
         button.classList.remove('add');
         button.classList.add('remove');
@@ -1690,11 +1790,8 @@ function fetchLeadActivity(leadId) {
       activityContainer.innerHTML = '';
       
       if (data.events && data.events.length > 0) {
-        const activityList = document.createElement('ul');
-        activityList.className = 'activity-list';
-        
         data.events.forEach(event => {
-          const activityItem = document.createElement('li');
+          const activityItem = document.createElement('div');
           activityItem.className = 'activity-item';
           
           const timestamp = formatDateTime(event.event_at);
@@ -1721,22 +1818,22 @@ function fetchLeadActivity(leadId) {
           }
           
           // Add campaign info if present
+          let campaignInfo = '';
           if (event.campaign) {
-            description += `<div class="activity-campaign">Campaign: ${event.campaign.name}</div>`;
+            campaignInfo = `<div class="activity-campaign">Campaign: ${event.campaign.name}</div>`;
           }
           
           activityItem.innerHTML = `
-            <div class="activity-time">${timestamp}</div>
-            <div class="activity-type">${activityType}</div>
+            <div class="activity-date">${timestamp}</div>
+            <div class="activity-type ${event.kind.toLowerCase().replace(/_/g, '-')}">${activityType}</div>
             ${description}
+            ${campaignInfo}
           `;
           
-          activityList.appendChild(activityItem);
+          activityContainer.appendChild(activityItem);
         });
-        
-        activityContainer.appendChild(activityList);
       } else {
-        activityContainer.innerHTML = '<p>No activity found for this lead.</p>';
+        activityContainer.innerHTML = '<p class="no-activity">No activity found for this lead.</p>';
       }
     })
     .catch(error => {
@@ -1828,62 +1925,6 @@ function loadLeadFields() {
   });
 }
 
-function dynamicallyBuildLeadForm(leadFields) {
-  const container = document.getElementById('lead-fields-container');
-  if (!container) return;
-
-  let html = '';
-  
-  // Sort fields to put standard fields first
-  const standardFields = ['first_name', 'last_name', 'company', 'title', 'phone'];
-  leadFields.sort((a, b) => {
-    const aIndex = standardFields.indexOf(a.name);
-    const bIndex = standardFields.indexOf(b.name);
-    
-    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
-    return a.name.localeCompare(b.name);
-  });
-
-  // Skip email field as it's already in the form
-  leadFields = leadFields.filter(field => field.name !== 'email');
-  
-  // Add each field to the form
-  leadFields.forEach(field => {
-    const fieldId = `lead-field-${field.name}`;
-    html += `
-      <div class="form-group">
-        <label for="${fieldId}">${formatFieldName(field.name)}</label>
-    `;
-
-    if (field.type === 'select' && field.options) {
-      html += `
-        <select id="${fieldId}" name="${field.name}" class="form-control">
-          <option value="">Select ${formatFieldName(field.name)}</option>
-          ${field.options.map(option => `<option value="${option}">${option}</option>`).join('')}
-        </select>
-      `;
-    } else {
-      html += `
-        <input type="${field.type === 'date' ? 'date' : 'text'}"
-               id="${fieldId}"
-               name="${field.name}"
-               class="form-control"
-               ${field.required ? 'required' : ''}
-               placeholder="Enter ${formatFieldName(field.name)}">
-      `;
-    }
-
-    html += '</div>';
-  });
-
-  container.innerHTML = html;
-
-  // Restore any previously cached values
-  restoreFormFieldsData();
-}
-
 function formatFieldName(name) {
   // Convert snake_case to Title Case
   return name
@@ -1908,9 +1949,17 @@ function loadCampaignsForSelect() {
     const apiKey = result.apiKey;
     const currentUserId = result.selectedUser;
     
+    if (!apiKey) {
+      console.error('No API key found');
+      campaignSelect.innerHTML = '<option value="">Error: API key not found</option>';
+      showError('create-lead-error', 'API key not found. Please reconnect your account.');
+      return;
+    }
+    
     if (!currentUserId) {
       console.error('No user selected');
       campaignSelect.innerHTML = '<option value="">No user selected</option>';
+      showError('create-lead-error', 'No user selected. Please select a user first.');
       return;
     }
     
@@ -1933,7 +1982,8 @@ function loadCampaignsForSelect() {
     })
     .then(data => {
       if (data && data.campaigns && data.campaigns.length > 0) {
-        campaignSelect.innerHTML = '<option value="" disabled selected>Select a campaign</option>';
+        // Add "No campaign" option first
+        campaignSelect.innerHTML = '<option value="">No campaign</option>';
         
         // Get compatible campaigns only (created by current user)
         const compatibleCampaigns = data.campaigns.filter(campaign => 
@@ -1963,6 +2013,9 @@ function loadCampaignsForSelect() {
           if (previousNote) {
             previousNote.remove();
           }
+
+          // Hide any previous errors
+          document.getElementById('create-lead-error').style.display = 'none';
         } else {
           // No compatible campaigns - add a message
           const option = document.createElement('option');
@@ -1976,10 +2029,15 @@ function loadCampaignsForSelect() {
           explanation.innerHTML = '<small>You can only add leads to campaigns that you created. Please create a campaign in PersistIQ first.</small>';
           campaignSelect.parentElement.appendChild(explanation);
         }
+      } else {
+        campaignSelect.innerHTML = '<option value="">No campaigns available</option>';
+        showError('create-lead-error', 'No campaigns found. Please create a campaign in PersistIQ first.');
       }
     })
     .catch(error => {
       console.error('Error loading campaigns for select:', error);
+      campaignSelect.innerHTML = '<option value="">Error loading campaigns</option>';
+      showError('create-lead-error', 'Error loading campaigns: ' + error.message);
     });
   });
 }
@@ -2242,10 +2300,10 @@ function loadCampaignsForStep3() {
 async function createUnifiedLead() {
   try {
     const storage = await new Promise((resolve) => {
-      chrome.storage.local.get(['apiKey'], resolve);
+      chrome.storage.local.get(['apiKey', 'selectedMailbox'], resolve);
     });
 
-    const { apiKey } = storage;
+    const { apiKey, selectedMailbox: mailboxId } = storage;
 
     if (!apiKey) {
       showError('create-lead-error', 'API key not found. Please reconnect.');
@@ -2256,6 +2314,16 @@ async function createUnifiedLead() {
     const email = emailInput?.value;
     const campaignSelect = document.getElementById('add-to-campaign-select');
     const campaignId = campaignSelect?.value;
+    const scheduleDateInput = document.getElementById('schedule-date');
+    const selectedDate = scheduleDateInput?.value;
+    const scheduleTime = document.getElementById('schedule-time')?.value;
+
+    console.log('Form submission - Initial values:', {
+      email,
+      campaignId,
+      selectedDate,
+      scheduleTime
+    });
 
     // Hide any previous error messages
     const errorElements = document.querySelectorAll('.error, .success');
@@ -2270,7 +2338,8 @@ async function createUnifiedLead() {
 
     // Get all form fields
     const formData = {
-      email: email
+      email: email,
+      date: selectedDate // Ensure date is included in form data
     };
 
     // Add other form fields if they exist
@@ -2309,91 +2378,85 @@ async function createUnifiedLead() {
       document.getElementById('lead-form-section').style.display = 'none';
 
       if (campaignId) {
-        // Show calendar section and update its information
-        const calendarSection = document.getElementById('calendar-section');
-        document.getElementById('scheduled-lead-email').textContent = email;
-        document.getElementById('scheduled-campaign-name').textContent = `${campaignSelect.options[campaignSelect.selectedIndex].text} (ID: ${campaignId})`;
-        document.getElementById('scheduled-lead-id').textContent = lead.id;
-        
-        // Initialize the date picker
-        const dateInput = document.getElementById('schedule-date');
+        // Get today's date in YYYY-MM-DD format
         const today = new Date().toISOString().split('T')[0];
-        dateInput.min = today;
-        dateInput.value = today;
+        
+        // Get the selected date from the input
+        const scheduleDateInput = document.getElementById('schedule-date');
+        const selectedDate = scheduleDateInput?.value;
 
-        // Show the calendar section
-        calendarSection.style.display = 'block';
+        console.log('Date validation:', {
+          selectedDate,
+          today,
+          formDataDate: formData.date
+        });
 
-        // Initialize Flatpickr
-        if (typeof flatpickr === 'function') {
-          flatpickr(dateInput, {
-            minDate: "today",
-            dateFormat: "Y-m-d",
-            altInput: true,
-            altFormat: "F j, Y",
-            appendTo: calendarSection
+        if (selectedDate === today) {
+          // Today's date flow - Add to campaign
+          console.log('Processing as today\'s date');
+          const campaignResponse = await fetch(`https://api.persistiq.com/v1/campaigns/${campaignId}/leads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey
+            },
+            body: JSON.stringify({
+              lead_id: lead.id,
+              mailbox_id: mailboxId
+            })
           });
+
+          if (!campaignResponse.ok) {
+            throw new Error('Failed to add lead to campaign');
+          }
+          successMessage = 'Lead was created and added to campaign successfully!';
+        } else {
+          // Future date flow - Only schedule
+          console.log('Processing as future date:', selectedDate);
+          const scheduleResponse = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              lead_id: lead.id,
+              campaign_id: campaignId,
+              start_date: selectedDate
+            })
+          });
+
+          if (!scheduleResponse.ok) {
+            throw new Error('Failed to schedule future campaign');
+          }
+          successMessage = `Lead was created and scheduled for ${selectedDate}!`;
         }
-
-        // Add event listener for Schedule Campaign button
-        const scheduleBtn = document.getElementById('schedule-btn');
-        if (scheduleBtn) {
-          scheduleBtn.onclick = async () => {
-            const startDate = dateInput?.value;
-            if (!startDate) {
-              showError('schedule-error', 'Please select a start date');
-              return;
-            }
-
-            try {
-              // Formatear la fecha para el endpoint
-              const formattedDate = `${startDate} 14:30:00`;
-              const scheduleData = {
-                lead_id: lead.id,
-                campaign_id: campaignId,
-                start_date: formattedDate
-              };
-
-              // Enviar datos al endpoint
-              const response = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(scheduleData)
-              });
-
-              if (response.ok) {
-                showSuccess('schedule-success', 'Campaign scheduled successfully!');
-                scheduleBtn.disabled = true;
-                scheduleBtn.textContent = 'Campaign Scheduled';
-              } else {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to schedule campaign');
-              }
-            } catch (error) {
-              showError('schedule-error', error.message);
-            }
-          };
-        }
+      } else {
+        // No campaign selected
+        successMessage = 'Lead was created successfully!';
       }
+
+      // Show success message
+      const successSection = document.createElement('div');
+      successSection.className = 'success-section';
+      successSection.style.textAlign = 'center';
+      successSection.style.padding = '20px';
+      successSection.innerHTML = `
+        <div class="success" style="display: block; margin-bottom: 20px;">
+          ${successMessage}
+        </div>
+        <button id="add-another-lead" class="btn-block">Add Another Lead</button>
+      `;
+
+      // Replace form section content with success message
+      const formSection = document.getElementById('lead-form-section');
+      formSection.innerHTML = '';
+      formSection.appendChild(successSection);
+      formSection.style.display = 'block';
 
       // Add event listener for Add Another Lead button
-      const addAnotherBtn = document.getElementById('add-another-lead');
-      if (addAnotherBtn) {
-        addAnotherBtn.onclick = () => {
-          // Reset the form
-          resetLeadForm();
-          // Hide calendar section and show form section
-          document.getElementById('calendar-section').style.display = 'none';
-          document.getElementById('lead-form-section').style.display = 'block';
-          // Clear the form fields
-          document.getElementById('new-lead-email').value = '';
-          document.getElementById('add-to-campaign-select').value = '';
-          // Reset any error or success messages
-          document.querySelectorAll('.error, .success').forEach(el => el.style.display = 'none');
-        };
-      }
+      document.getElementById('add-another-lead').onclick = () => {
+        resetLeadForm();
+      };
     } else {
       throw new Error('Unexpected response format');
     }
@@ -2406,7 +2469,10 @@ async function createUnifiedLead() {
 // Modify resetLeadForm function to handle the new layout
 function resetLeadForm() {
   // Reset email
-  document.getElementById('new-lead-email').value = '';
+  const emailInput = document.getElementById('new-lead-email');
+  if (emailInput) {
+    emailInput.value = '';
+  }
   
   // Clear stored email
   chrome.storage.local.remove('leadEmail');
@@ -2417,14 +2483,43 @@ function resetLeadForm() {
   });
   
   // Reset error and success messages
-  document.querySelectorAll('.error, .success').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.error, .success').forEach(el => {
+    if (el) el.style.display = 'none';
+  });
   
-  // Show form section and hide calendar section
-  document.getElementById('lead-form-section').style.display = 'block';
-  document.getElementById('calendar-section').style.display = 'none';
-  
-  // Ensure form is visible
-  document.getElementById('unified-lead-form').style.display = 'block';
+  // Show form section
+  const formSection = document.getElementById('lead-form-section');
+  if (formSection) {
+    formSection.style.display = 'block';
+    formSection.innerHTML = `
+      <div class="form-group">
+        <label for="new-lead-email">Email</label>
+        <input type="email" id="new-lead-email" class="form-control" required>
+      </div>
+      <div id="lead-fields-container">
+        <!-- Lead fields will be dynamically added here -->
+      </div>
+      <div class="form-group">
+        <label for="add-to-campaign-select">Add to Campaign (Optional)</label>
+        <select id="add-to-campaign-select" class="form-control">
+          <option value="">Select a campaign</option>
+        </select>
+      </div>
+      <div id="schedule-section" style="display: none;">
+        <div class="form-group">
+          <label for="schedule-date">Schedule Date</label>
+          <input type="text" id="schedule-date" class="form-control" placeholder="Select date">
+        </div>
+        <div class="form-group">
+          <label for="schedule-time">Schedule Time</label>
+          <input type="text" id="schedule-time" class="form-control" placeholder="Select time">
+        </div>
+      </div>
+      <div id="create-lead-error" class="error" style="display: none;"></div>
+      <div id="create-lead-success" class="success" style="display: none;"></div>
+      <button id="create-unified-lead" class="btn-block">Create Lead</button>
+    `;
+  }
   
   // Reset campaign select
   const campaignSelect = document.getElementById('add-to-campaign-select');
@@ -2434,6 +2529,64 @@ function resetLeadForm() {
   
   // Reload lead fields
   loadLeadFields();
+  
+  // Reinitialize date and time pickers
+  if (typeof flatpickr !== 'undefined') {
+    flatpickr("#schedule-date", {
+      minDate: "today",
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "F j, Y",
+      disableMobile: true,
+      static: true,
+      inline: false,
+      position: "auto",
+      onOpen: function() {
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      },
+      onClose: function() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      },
+      onChange: function(selectedDates) {
+        updateTimePickerRestrictions(selectedDates[0]);
+      }
+    });
+
+    flatpickr("#schedule-time", {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "h:i K",
+      time_24hr: false,
+      minuteIncrement: 15,
+      defaultHour: new Date().getHours() + 1,
+      defaultMinute: 0,
+      disableMobile: true,
+      static: true,
+      inline: false,
+      position: "auto",
+      onOpen: function() {
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      },
+      onClose: function() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
+  }
+  
+  // Add event listener for campaign selection
+  const newCampaignSelect = document.getElementById('add-to-campaign-select');
+  if (newCampaignSelect) {
+    newCampaignSelect.addEventListener('change', function() {
+      const scheduleSection = document.getElementById('schedule-section');
+      if (scheduleSection) {
+        scheduleSection.style.display = this.value ? 'block' : 'none';
+      }
+    });
+  }
 }
 
 /**
@@ -2826,50 +2979,68 @@ document.querySelector('.tab[data-tab="add-lead-tab"]').addEventListener('click'
 
 // Función para crear un nuevo schedule
 async function createSchedule(leadId, campaignId, startDate) {
-    try {
-        const scheduleData = {
-            lead_id: leadId,
-            campaign_id: campaignId,
-            start_date: startDate
-        };
+  const scheduleBtn = document.getElementById('schedule-btn');
+  const errorElement = document.getElementById('schedule-error');
+  const successElement = document.getElementById('schedule-success');
+  
+  // Obtener la fecha y hora seleccionadas
+  const selectedDate = document.getElementById('schedule-date').value;
+  const selectedTime = document.getElementById('schedule-time').value;
+  
+  if (!selectedDate || !selectedTime) {
+    showError('schedule-error', 'Please select both date and time');
+    return;
+  }
 
-        console.log('Sending schedule data:', scheduleData);
+  // Combinar fecha y hora
+  const [hours, minutes] = selectedTime.split(':');
+  const scheduledDate = new Date(selectedDate);
+  scheduledDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-        const response = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(scheduleData)
-        });
+  // Validar que la fecha/hora no sea anterior a la actual
+  const now = new Date();
+  if (scheduledDate < now) {
+    showError('schedule-error', 'Selected date and time cannot be in the past');
+    return;
+  }
 
-        console.log('Schedule API response status:', response.status);
-        
-        // Intentar obtener el texto de la respuesta primero
-        const responseText = await response.text();
-        console.log('Raw response:', responseText);
-        
-        let data;
-        try {
-            data = JSON.parse(responseText);
-            console.log('Parsed response data:', data);
-        } catch (e) {
-            console.error('Error parsing response:', e);
-            throw new Error('Invalid response from schedule API');
-        }
+  try {
+    scheduleBtn.disabled = true;
+    scheduleBtn.textContent = 'Scheduling...';
+    errorElement.style.display = 'none';
+    
+    const response = await fetch(`https://api.persistiq.com/v1/campaigns/${campaignId}/leads/${leadId}/schedule`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({
+        start_at: scheduledDate.toISOString()
+      })
+    });
 
-        if (!response.ok) {
-            const errorMessage = data.message || data.error || 'Failed to create schedule';
-            throw new Error(errorMessage);
-        }
-        
-        if (data.error) {
-            throw new Error(data.message || 'Unknown error from schedule API');
-        }
-        
-        return data;
-    } catch (error) {
-        console.error('Error in createSchedule:', error);
-        throw new Error(`Failed to create schedule: ${error.message}`);
+    if (!response.ok) {
+      throw new Error('Failed to schedule campaign');
     }
+
+    successElement.textContent = 'Campaign scheduled successfully!';
+    successElement.style.display = 'block';
+    
+    // Limpiar los campos
+    document.getElementById('schedule-date').value = '';
+    document.getElementById('schedule-time').value = '';
+    
+    // Mostrar el botón de "Add Another Lead" después de 2 segundos
+    setTimeout(() => {
+      document.getElementById('add-another-lead').style.display = 'block';
+    }, 2000);
+
+  } catch (error) {
+    console.error('Error scheduling campaign:', error);
+    showError('schedule-error', 'Failed to schedule campaign. Please try again.');
+  } finally {
+    scheduleBtn.disabled = false;
+    scheduleBtn.textContent = 'Schedule Campaign';
+  }
 }
