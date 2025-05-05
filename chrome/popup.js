@@ -686,8 +686,168 @@ function loadCampaigns() {
           campaignsContainer.innerHTML = '';
           
           userCampaigns.forEach(campaign => {
-            const campaignElement = createCampaignElement(campaign);
-            campaignsContainer.appendChild(campaignElement);
+            const isLeadInCampaign = leadCampaignsArr.some(c => c.id === campaign.id);
+            const isScheduled = !!scheduledCampaigns[campaign.id];
+            const scheduledEvent = scheduledCampaigns[campaign.id];
+            const div = document.createElement('div');
+            div.className = 'campaign-list-item';
+            div.setAttribute('data-campaign-id', campaign.id);
+            const campaignInfo = document.createElement('div');
+            campaignInfo.className = 'campaign-info';
+            const campaignName = document.createElement('div');
+            campaignName.className = 'campaign-name';
+            campaignName.textContent = campaign.name;
+            campaignInfo.appendChild(campaignName);
+            if (isScheduled) {
+              const scheduleInfo = document.createElement('div');
+              scheduleInfo.className = 'scheduled-info';
+              // Mostrar reloj y la fecha
+              const scheduledAction = scheduledEvent.action || 'SCHEDULE';
+              const actionLabel = scheduledAction === 'REMOVE' ? 'Remove' : 'Add';
+              scheduleInfo.innerHTML = `
+                <span style="font-size:1.2em;">🕒</span> <b>${scheduledEvent.start_date}</b><br>
+                <span style="font-size:0.95em;">Action: <b>${actionLabel}</b></span>
+              `;
+              campaignInfo.appendChild(scheduleInfo);
+              const unscheduleBtn = document.createElement('button');
+              unscheduleBtn.className = 'unschedule-campaign btn-danger';
+              unscheduleBtn.textContent = 'Unschedule';
+              unscheduleBtn.addEventListener('click', async function() {
+                unscheduleBtn.disabled = true;
+                unscheduleBtn.textContent = 'Unscheduling...';
+                try {
+                  const response = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/unschedule.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      lead_id: leadId,
+                      campaign_id: campaign.id
+                    })
+                  });
+                  const data = await response.json();
+                  if (data.error) {
+                    alert('Error: ' + data.message);
+                  }
+                } catch (err) {
+                  alert('Error unscheduling campaign');
+                }
+                fetchLeadCampaigns(leadId);
+              });
+              div.appendChild(campaignInfo);
+              div.appendChild(unscheduleBtn);
+              campaignsContainer.appendChild(div);
+              return;
+            }
+            // Lógica Add/Remove con calendario
+            const campaignAction = document.createElement('div');
+            campaignAction.className = 'campaign-action';
+            const actionBtn = document.createElement('button');
+            actionBtn.className = isLeadInCampaign ? 'remove-campaign' : 'add-campaign';
+            actionBtn.textContent = isLeadInCampaign ? 'Remove' : 'Add';
+            // Contenedor de calendario y botones
+            const calendarContainer = document.createElement('div');
+            calendarContainer.className = 'calendar-action-container';
+            calendarContainer.style.display = 'none';
+            calendarContainer.innerHTML = `
+              <label for="calendar-input-${campaign.id}" style="display:block;margin-bottom:4px;">Start Date</label>
+              <input type="date" id="calendar-input-${campaign.id}" class="campaign-calendar" min="${new Date().toISOString().split('T')[0]}" value="${new Date().toISOString().split('T')[0]}" style="margin-bottom:8px;display:block;" />
+              <div class="calendar-action-buttons" style="display:flex;gap:8px;">
+                <button class="calendar-cancel-btn btn-secondary">Cancelar</button>
+                <button class="calendar-confirm-btn btn-block">${isLeadInCampaign ? 'Remove' : 'Add'}</button>
+              </div>
+            `;
+            // Lógica para cambiar el texto del botón según la fecha
+            const calendarInput = calendarContainer.querySelector('.campaign-calendar');
+            const confirmBtn = calendarContainer.querySelector('.calendar-confirm-btn');
+            calendarInput.addEventListener('change', function() {
+              const selectedDate = new Date(calendarInput.value);
+              const today = new Date();
+              selectedDate.setHours(0,0,0,0);
+              today.setHours(0,0,0,0);
+              // Solo cambia el texto del botón visible dentro del calendario
+              if (selectedDate > today) {
+                confirmBtn.textContent = 'Schedule';
+              } else {
+                confirmBtn.textContent = isLeadInCampaign ? 'Remove' : 'Add';
+              }
+            });
+            // Mostrar calendario al hacer click en Add/Remove
+            actionBtn.addEventListener('click', function() {
+              document.querySelectorAll('.calendar-action-container').forEach(el => el.style.display = 'none');
+              calendarContainer.style.display = 'block';
+              actionBtn.style.display = 'none';
+            });
+            // Cancelar
+            calendarContainer.querySelector('.calendar-cancel-btn').addEventListener('click', function(e) {
+              e.preventDefault();
+              calendarContainer.style.display = 'none';
+              actionBtn.style.display = 'inline-block';
+            });
+            // Confirmar Add/Remove
+            calendarContainer.querySelector('.calendar-confirm-btn').addEventListener('click', async function(e) {
+              e.preventDefault();
+              const calendarInput = calendarContainer.querySelector('.campaign-calendar');
+              const selectedDate = calendarInput.value;
+              const todayStr = new Date().toISOString().split('T')[0];
+              const isRemove = isLeadInCampaign;
+              const confirmBtn = this;
+              const cancelBtn = calendarContainer.querySelector('.calendar-cancel-btn');
+              confirmBtn.disabled = true;
+              cancelBtn.disabled = true;
+              confirmBtn.textContent = isRemove ? 'Removing...' : 'Adding...';
+              try {
+                if (!selectedDate || selectedDate === todayStr) {
+                  if (isRemove) {
+                    await fetch(`https://api.persistiq.com/v1/campaigns/${campaign.id}/leads/${leadId}`, {
+                      method: 'DELETE',
+                      headers: {
+                        'x-api-key': apiKey,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+                  } else {
+                    const { selectedMailbox } = await new Promise(resolve => chrome.storage.local.get(['selectedMailbox'], resolve));
+                    await fetch(`https://api.persistiq.com/v1/campaigns/${campaign.id}/leads`, {
+                      method: 'POST',
+                      headers: {
+                        'x-api-key': apiKey,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        lead_id: leadId,
+                        mailbox_id: selectedMailbox
+                      })
+                    });
+                  }
+                } else if (selectedDate > todayStr) {
+                  // Schedule futuro
+                  await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      lead_id: leadId,
+                      campaign_id: campaign.id,
+                      start_date: selectedDate,
+                      action: isRemove ? 'REMOVE' : 'SCHEDULE'
+                    })
+                  });
+                } else {
+                  alert('La fecha seleccionada no puede ser menor a hoy.');
+                  confirmBtn.disabled = false;
+                  cancelBtn.disabled = false;
+                  confirmBtn.textContent = isRemove ? 'Remove' : 'Add';
+                  return;
+                }
+              } catch (err) {
+                alert('Ocurrió un error.');
+              }
+              fetchLeadCampaigns(leadId);
+            });
+            campaignAction.appendChild(actionBtn);
+            div.appendChild(campaignInfo);
+            div.appendChild(campaignAction);
+            div.appendChild(calendarContainer);
+            campaignsContainer.appendChild(div);
           });
         } else {
           campaignsContainer.innerHTML = '<div style="text-align: center; padding: 20px;"><p>You do not have any campaigns you can use</p><p>Create a campaign in PersistIQ first</p></div>';
@@ -1479,159 +1639,237 @@ function displayLeadAttributes(lead) {
  * Fetch campaigns for a lead
  * @param {string} leadId - The lead ID
  */
-function fetchLeadCampaigns(leadId) {
+async function fetchLeadCampaigns(leadId) {
   const campaignsContainer = document.getElementById('lead-campaigns');
   campaignsContainer.innerHTML = '<p>Loading campaigns...</p>';
-  
-  chrome.storage.local.get(['apiKey', 'selectedUser'], function(result) {
-    const apiKey = result.apiKey;
-    const currentUserId = result.selectedUser;
-    
-    if (!apiKey) {
-      console.error('No API key found');
-      campaignsContainer.innerHTML = '<p>Error: API key not found</p>';
-      return;
-    }
-    
-    if (!currentUserId) {
-      console.error('No user selected');
-      campaignsContainer.innerHTML = '<p>Error: No user selected</p>';
-      return;
-    }
-    
-    // First get all campaigns
-    fetch('https://api.persistiq.com/v1/campaigns', {
+
+  // Obtener datos de usuario y API key
+  const { apiKey, selectedUser: currentUserId } = await new Promise(resolve => {
+    chrome.storage.local.get(['apiKey', 'selectedUser'], resolve);
+  });
+
+  if (!apiKey) {
+    console.error('No API key found');
+    campaignsContainer.innerHTML = '<p>Error: API key not found</p>';
+    return;
+  }
+  if (!currentUserId) {
+    console.error('No user selected');
+    campaignsContainer.innerHTML = '<p>Error: No user selected</p>';
+    return;
+  }
+
+  try {
+    // 1. Obtener campañas del lead
+    const leadCampaignsRes = await fetch(`https://api.persistiq.com/v1/campaigns?lead_id=${leadId}`, {
       method: 'GET',
       headers: {
         'x-api-key': apiKey,
         'Content-Type': 'application/json'
       }
-    })
-    .then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error('Failed to load campaigns');
-      }
-    })
-    .then(allCampaignsData => {
-      // Then get campaigns the lead belongs to
-      return fetch(`https://api.persistiq.com/v1/campaigns?lead_id=${leadId}`, {
-        method: 'GET',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error('Failed to load lead campaigns');
-        }
-      })
-      .then(leadCampaignsData => {
-        return {
-          allCampaigns: allCampaignsData.campaigns || [],
-          leadCampaigns: leadCampaignsData.campaigns || []
-        };
-      });
-    })
-    .then(data => {
-      // Clear loading message
-      campaignsContainer.innerHTML = '';
-      
-      // Filter campaigns to only show those created by the current user
-      const userCampaigns = data.allCampaigns.filter(campaign => 
-        campaign.creator && campaign.creator.id === currentUserId
-      );
-      
-      if (userCampaigns.length > 0) {
-        // Create a container for campaigns
-        const campaignList = document.createElement('div');
-        campaignList.className = 'campaign-list';
-        
-        // Create a message for campaigns
-        const campaignsHeader = document.createElement('div');
-        campaignsHeader.className = 'lead-campaigns-header';
-        campaignsHeader.textContent = 'Your Campaigns';
-        campaignsContainer.appendChild(campaignsHeader);
-        
-        // Create a campaign element for each campaign
-        userCampaigns.forEach(campaign => {
-          const isLeadInCampaign = data.leadCampaigns.some(c => c.id === campaign.id);
-          
-          const campaignItem = document.createElement('div');
-          campaignItem.className = 'campaign-list-item';
-          campaignItem.setAttribute('data-campaign-id', campaign.id);
-          
-          const campaignInfo = document.createElement('div');
-          campaignInfo.className = 'campaign-info';
-          
-          const campaignName = document.createElement('div');
-          campaignName.className = 'campaign-name';
-          campaignName.textContent = campaign.name;
-          
-          campaignInfo.appendChild(campaignName);
-          
-          const campaignAction = document.createElement('div');
-          campaignAction.className = 'campaign-action';
-          
-          const campaignBtn = document.createElement('button');
-          campaignBtn.className = isLeadInCampaign ? 'remove-campaign' : 'add-campaign';
-          campaignBtn.textContent = isLeadInCampaign ? 'Remove' : 'Add';
-          
-          campaignAction.appendChild(campaignBtn);
-          
-          campaignItem.appendChild(campaignInfo);
-          campaignItem.appendChild(campaignAction);
-          
-          // Add click handler to the button
-          campaignBtn.addEventListener('click', function() {
-            const isCurrentlyInCampaign = this.classList.contains('remove-campaign');
-            
-            // Disable button and show loading state
-            this.disabled = true;
-            this.style.opacity = '0.7';
-            this.textContent = isCurrentlyInCampaign ? 'Removing...' : 'Adding...';
-            
-            if (isCurrentlyInCampaign) {
-              removeLeadFromCampaign(campaign.id, leadId);
-              // Wait 10 seconds then update button
-              setTimeout(() => {
-                this.classList.remove('remove');
-                this.classList.add('add');
-                this.textContent = 'Add';
-                this.disabled = false;
-                this.style.opacity = '1';
-              }, 10000);
-            } else {
-              addLeadToCampaign(campaign.id, leadId);
-              // Wait 10 seconds then update button
-              setTimeout(() => {
-                this.classList.remove('add');
-                this.classList.add('remove');
-                this.textContent = 'Remove';
-                this.disabled = false;
-                this.style.opacity = '1';
-              }, 10000);
-            }
-          });
-          
-          // Add to container
-          campaignList.appendChild(campaignItem);
-        });
-        
-        campaignsContainer.appendChild(campaignList);
-      } else {
-        campaignsContainer.innerHTML = '<p>You have no campaigns. Create a campaign in PersistIQ first.</p>';
-      }
-    })
-    .catch(error => {
-      console.error('Error loading campaigns:', error);
-      campaignsContainer.innerHTML = `<p>Error loading campaigns: ${error.message}</p>`;
     });
-  });
+    const leadCampaignsData = await leadCampaignsRes.json();
+    const leadCampaignsArr = leadCampaignsData.campaigns && Array.isArray(leadCampaignsData.campaigns) ? leadCampaignsData.campaigns : [];
+
+    // 2. Obtener campañas programadas (schedules)
+    let scheduledCampaigns = {};
+    try {
+      const scheduleRes = await fetch(`https://website-4c67a44a.fvq.uim.temporary.site/api/get_lead_events.php?lead_id=${leadId}&_=${Date.now()}`, { cache: 'no-store' });
+      const scheduleData = await scheduleRes.json();
+      if (!scheduleData.error && Array.isArray(scheduleData.data)) {
+        scheduleData.data.forEach(ev => {
+          scheduledCampaigns[ev.campaign_id] = ev;
+        });
+      }
+    } catch (e) {}
+
+    // 3. Obtener todas las campañas del usuario
+    const allCampaignsRes = await fetch('https://api.persistiq.com/v1/campaigns', {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    const allCampaignsData = await allCampaignsRes.json();
+    const userCampaigns = allCampaignsData.campaigns && Array.isArray(allCampaignsData.campaigns)
+      ? allCampaignsData.campaigns.filter(campaign => campaign.creator && campaign.creator.id === currentUserId)
+      : [];
+
+    // 4. Renderizar campañas
+    campaignsContainer.innerHTML = '';
+    if (userCampaigns.length > 0) {
+      userCampaigns.forEach(campaign => {
+        const isLeadInCampaign = leadCampaignsArr.some(c => c.id === campaign.id);
+        const isScheduled = !!scheduledCampaigns[campaign.id];
+        const scheduledEvent = scheduledCampaigns[campaign.id];
+        const div = document.createElement('div');
+        div.className = 'campaign-list-item';
+        div.setAttribute('data-campaign-id', campaign.id);
+        const campaignInfo = document.createElement('div');
+        campaignInfo.className = 'campaign-info';
+        const campaignName = document.createElement('div');
+        campaignName.className = 'campaign-name';
+        campaignName.textContent = campaign.name;
+        campaignInfo.appendChild(campaignName);
+        if (isScheduled) {
+          const scheduleInfo = document.createElement('div');
+          scheduleInfo.className = 'scheduled-info';
+          // Mostrar reloj y la fecha
+          const scheduledAction = scheduledEvent.action || 'SCHEDULE';
+          const actionLabel = scheduledAction === 'REMOVE' ? 'Remove' : 'Add';
+          scheduleInfo.innerHTML = `
+            <span style="font-size:1.2em;">🕒</span> <b>${scheduledEvent.start_date}</b><br>
+            <span style="font-size:0.95em;">Action: <b>${actionLabel}</b></span>
+          `;
+          campaignInfo.appendChild(scheduleInfo);
+          const unscheduleBtn = document.createElement('button');
+          unscheduleBtn.className = 'unschedule-campaign btn-danger';
+          unscheduleBtn.textContent = 'Unschedule';
+          unscheduleBtn.addEventListener('click', async function() {
+            unscheduleBtn.disabled = true;
+            unscheduleBtn.textContent = 'Unscheduling...';
+            try {
+              const response = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/unschedule.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  lead_id: leadId,
+                  campaign_id: campaign.id
+                })
+              });
+              const data = await response.json();
+              if (data.error) {
+                alert('Error: ' + data.message);
+              }
+            } catch (err) {
+              alert('Error unscheduling campaign');
+            }
+            fetchLeadCampaigns(leadId);
+          });
+          div.appendChild(campaignInfo);
+          div.appendChild(unscheduleBtn);
+          campaignsContainer.appendChild(div);
+          return;
+        }
+        // Lógica Add/Remove con calendario
+        const campaignAction = document.createElement('div');
+        campaignAction.className = 'campaign-action';
+        const actionBtn = document.createElement('button');
+        actionBtn.className = isLeadInCampaign ? 'remove-campaign' : 'add-campaign';
+        actionBtn.textContent = isLeadInCampaign ? 'Remove' : 'Add';
+        // Contenedor de calendario y botones
+        const calendarContainer = document.createElement('div');
+        calendarContainer.className = 'calendar-action-container';
+        calendarContainer.style.display = 'none';
+        calendarContainer.innerHTML = `
+          <label for="calendar-input-${campaign.id}" style="display:block;margin-bottom:4px;">Start Date</label>
+          <input type="date" id="calendar-input-${campaign.id}" class="campaign-calendar" min="${new Date().toISOString().split('T')[0]}" value="${new Date().toISOString().split('T')[0]}" style="margin-bottom:8px;display:block;" />
+          <div class="calendar-action-buttons" style="display:flex;gap:8px;">
+            <button class="calendar-cancel-btn btn-secondary">Cancelar</button>
+            <button class="calendar-confirm-btn btn-block">${isLeadInCampaign ? 'Remove' : 'Add'}</button>
+          </div>
+        `;
+        // Lógica para cambiar el texto del botón según la fecha
+        const calendarInput = calendarContainer.querySelector('.campaign-calendar');
+        const confirmBtn = calendarContainer.querySelector('.calendar-confirm-btn');
+        calendarInput.addEventListener('change', function() {
+          const selectedDate = new Date(calendarInput.value);
+          const today = new Date();
+          selectedDate.setHours(0,0,0,0);
+          today.setHours(0,0,0,0);
+          // Solo cambia el texto del botón visible dentro del calendario
+          if (selectedDate > today) {
+            confirmBtn.textContent = 'Schedule';
+          } else {
+            confirmBtn.textContent = isLeadInCampaign ? 'Remove' : 'Add';
+          }
+        });
+        // Mostrar calendario al hacer click en Add/Remove
+        actionBtn.addEventListener('click', function() {
+          document.querySelectorAll('.calendar-action-container').forEach(el => el.style.display = 'none');
+          calendarContainer.style.display = 'block';
+          actionBtn.style.display = 'none';
+        });
+        // Cancelar
+        calendarContainer.querySelector('.calendar-cancel-btn').addEventListener('click', function(e) {
+          e.preventDefault();
+          calendarContainer.style.display = 'none';
+          actionBtn.style.display = 'inline-block';
+        });
+        // Confirmar Add/Remove
+        calendarContainer.querySelector('.calendar-confirm-btn').addEventListener('click', async function(e) {
+          e.preventDefault();
+          const calendarInput = calendarContainer.querySelector('.campaign-calendar');
+          const selectedDate = calendarInput.value;
+          const todayStr = new Date().toISOString().split('T')[0];
+          const isRemove = isLeadInCampaign;
+          const confirmBtn = this;
+          const cancelBtn = calendarContainer.querySelector('.calendar-cancel-btn');
+          confirmBtn.disabled = true;
+          cancelBtn.disabled = true;
+          confirmBtn.textContent = isRemove ? 'Removing...' : 'Adding...';
+          try {
+            if (!selectedDate || selectedDate === todayStr) {
+              if (isRemove) {
+                await fetch(`https://api.persistiq.com/v1/campaigns/${campaign.id}/leads/${leadId}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'x-api-key': apiKey,
+                    'Content-Type': 'application/json'
+                  }
+                });
+              } else {
+                const { selectedMailbox } = await new Promise(resolve => chrome.storage.local.get(['selectedMailbox'], resolve));
+                await fetch(`https://api.persistiq.com/v1/campaigns/${campaign.id}/leads`, {
+                  method: 'POST',
+                  headers: {
+                    'x-api-key': apiKey,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    lead_id: leadId,
+                    mailbox_id: selectedMailbox
+                  })
+                });
+              }
+            } else if (selectedDate > todayStr) {
+              // Schedule futuro
+              await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  lead_id: leadId,
+                  campaign_id: campaign.id,
+                  start_date: selectedDate,
+                  action: isRemove ? 'REMOVE' : 'SCHEDULE'
+                })
+              });
+            } else {
+              alert('La fecha seleccionada no puede ser menor a hoy.');
+              confirmBtn.disabled = false;
+              cancelBtn.disabled = false;
+              confirmBtn.textContent = isRemove ? 'Remove' : 'Add';
+              return;
+            }
+          } catch (err) {
+            alert('Ocurrió un error.');
+          }
+          fetchLeadCampaigns(leadId);
+        });
+        campaignAction.appendChild(actionBtn);
+        div.appendChild(campaignInfo);
+        div.appendChild(campaignAction);
+        div.appendChild(calendarContainer);
+        campaignsContainer.appendChild(div);
+      });
+    } else {
+      campaignsContainer.innerHTML = '<div style="text-align: center; padding: 20px;"><p>You do not have any campaigns you can use</p><p>Create a campaign in PersistIQ first</p></div>';
+    }
+  } catch (error) {
+    console.error('Error loading campaigns:', error);
+    campaignsContainer.innerHTML = '<div style="text-align: center; padding: 20px;"><p>Error loading campaigns</p></div>';
+  }
 }
 
 /**
@@ -2825,11 +3063,7 @@ function formatDate(dateString) {
   if (!dateString) return 'N/A';
   
   const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
-  });
+  return date.toLocaleDateString();
 }
 
 /**
@@ -2844,9 +3078,7 @@ function formatDateTime(dateString) {
   return date.toLocaleDateString(undefined, { 
     year: 'numeric', 
     month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: 'numeric' 
   });
 }
 
