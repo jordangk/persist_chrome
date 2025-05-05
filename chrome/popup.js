@@ -1089,26 +1089,38 @@ function dynamicallyBuildLeadForm(leadFields) {
         </select>
       `;
     } else {
-      html += `
-        <input type="${field.type === 'date' ? 'date' : 'text'}"
-               id="${fieldId}"
-               name="${field.name}"
-               class="form-control"
-               ${field.required ? 'required' : ''}
-               placeholder="Enter ${formatFieldName(field.name)}">
-      `;
+      // Si el campo es de tipo date, agrégalo dinámicamente
+      if (field.type === 'date') {
+        html += `
+          <input type="date"
+                 id="${fieldId}"
+                 name="${field.name}"
+                 class="form-control"
+                 ${field.required ? 'required' : ''}
+                 placeholder="Enter ${formatFieldName(field.name)}">
+        `;
+      } else {
+        html += `
+          <input type="text"
+                 id="${fieldId}"
+                 name="${field.name}"
+                 class="form-control"
+                 ${field.required ? 'required' : ''}
+                 placeholder="Enter ${formatFieldName(field.name)}">
+        `;
+      }
     }
 
     html += '</div>';
   });
 
-  // Add the new date field at the end (initially hidden)
-  html += `
-    <div class="form-group" id="date-field-container" style="display: none;">
-      <label for="lead-field-date">Date</label>
+  // Add the date field after the campaign selection
+  /*html += `
+    <div class="form-group" id="date-field-container">
+      <label for="lead-field-date">Start Date Test</label>
       <input type="date" id="lead-field-date" name="date" class="form-control">
     </div>
-  `;
+  `;*/
 
   container.innerHTML = html;
 
@@ -2378,22 +2390,18 @@ async function createUnifiedLead() {
       document.getElementById('lead-form-section').style.display = 'none';
 
       if (campaignId) {
-        // Get today's date in YYYY-MM-DD format
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Get the selected date from the input
-        const scheduleDateInput = document.getElementById('schedule-date');
-        const selectedDate = scheduleDateInput?.value;
+        // Obtener la fecha seleccionada del campo dinámico de tipo date (si existe)
+        let selectedDate = '';
+        const dateField = document.querySelector('input[type="date"][name]');
+        if (dateField) {
+          selectedDate = dateField.value;
+        }
+        // Obtener la fecha de hoy en formato YYYY-MM-DD
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
 
-        console.log('Date validation:', {
-          selectedDate,
-          today,
-          formDataDate: formData.date
-        });
-
-        if (selectedDate === today) {
-          // Today's date flow - Add to campaign
-          console.log('Processing as today\'s date');
+        // Si no hay fecha o la fecha es igual a hoy, registrar inmediatamente
+        if (!selectedDate || selectedDate === todayStr) {
           const campaignResponse = await fetch(`https://api.persistiq.com/v1/campaigns/${campaignId}/leads`, {
             method: 'POST',
             headers: {
@@ -2411,24 +2419,28 @@ async function createUnifiedLead() {
           }
           successMessage = 'Lead was created and added to campaign successfully!';
         } else {
-          // Future date flow - Only schedule
-          console.log('Processing as future date:', selectedDate);
-          const scheduleResponse = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              lead_id: lead.id,
-              campaign_id: campaignId,
-              start_date: selectedDate
-            })
-          });
+          // Si la fecha es mayor a hoy, llamar al API de schedule
+          if (selectedDate > todayStr) {
+            const scheduleResponse = await fetch('https://website-4c67a44a.fvq.uim.temporary.site/api/schedule.php', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                lead_id: lead.id,
+                campaign_id: campaignId,
+                start_date: selectedDate
+              })
+            });
 
-          if (!scheduleResponse.ok) {
-            throw new Error('Failed to schedule future campaign');
+            if (!scheduleResponse.ok) {
+              throw new Error('Failed to schedule future campaign');
+            }
+            successMessage = `Lead was created and scheduled for ${selectedDate}!`;
+          } else {
+            // Si la fecha es menor a hoy, mostrar error
+            throw new Error('Selected date cannot be in the past.');
           }
-          successMessage = `Lead was created and scheduled for ${selectedDate}!`;
         }
       } else {
         // No campaign selected
@@ -3043,4 +3055,15 @@ async function createSchedule(leadId, campaignId, startDate) {
     scheduleBtn.disabled = false;
     scheduleBtn.textContent = 'Schedule Campaign';
   }
+}
+
+// Mostrar/ocultar el campo Start Date según la selección de campaña
+const campaignSelect = document.getElementById('add-to-campaign-select');
+if (campaignSelect) {
+  campaignSelect.addEventListener('change', function() {
+    const startDateGroup = document.getElementById('start-date-group');
+    if (startDateGroup) {
+      startDateGroup.style.display = this.value ? 'block' : 'none';
+    }
+  });
 }
